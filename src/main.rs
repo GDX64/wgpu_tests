@@ -10,6 +10,10 @@ use piet_common::Device;
 use piet_direct2d::D2DRenderContext;
 
 fn main() -> Result<(), Box<dyn Error>> {
+    draw_app()
+}
+
+fn draw_app() -> Result<(), Box<dyn Error>> {
     let mut window = Window::new(
         "Test - ESC to exit",
         WIDTH,
@@ -23,7 +27,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Limit to max ~60 fps update rate
     window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
     window.limit_update_rate(Some(Duration::from_millis(32)));
-    let mut device = Device::new()?;
+    let device = Box::new(Device::new()?);
+    let device = Box::leak(device);
     let mut target = device.bitmap_target(WIDTH, HEIGHT, 1.)?;
     while window.is_open() {
         {
@@ -35,6 +40,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let drawing = buff_to_vec(target.to_image_buf(piet::ImageFormat::RgbaPremul)?);
         window.update_with_buffer(&drawing, WIDTH, HEIGHT).unwrap();
     }
+
     Ok(())
 }
 
