@@ -1,52 +1,39 @@
 use piet::{Color, FontFamily, RenderContext, Text, TextLayoutBuilder};
-
 pub struct App<V: Component> {
     comp: V,
 }
 
 impl<V: Component> App<V> {
-    pub fn draw(&mut self, piet_context: &mut V::Context) {
+    pub fn draw(&mut self, piet_context: &mut impl RenderContext) {
         self.comp.update(piet_context);
         self.comp.draw(piet_context);
         piet_context.finish().unwrap();
     }
 }
 
-pub fn create_new_app<C: RenderContext>() -> App<impl Component<Context = C>> {
+pub fn create_new_app() -> App<impl Component> {
     App {
-        comp: Button::<C>::new("Hello, world!".to_string()),
+        comp: Button::new("Hello, world!".to_string()),
     }
 }
 
 pub trait Component {
-    type Context: RenderContext;
-    fn draw(&self, piet_context: &mut Self::Context);
-    fn update(&mut self, piet_context: &mut Self::Context) {}
+    fn draw(&self, piet_context: &mut impl RenderContext);
+    fn update(&mut self, piet_context: &mut impl RenderContext) {}
 }
 
-struct Button<C: RenderContext> {
+struct Button {
     text: String,
-    text_layout: Option<C::TextLayout>,
 }
 
-impl<C: RenderContext> Button<C> {
+impl Button {
     fn new(text: String) -> Self {
-        Self {
-            text,
-            text_layout: None,
-        }
+        Self { text }
     }
 }
 
-impl<C: RenderContext> Component for Button<C> {
-    type Context = C;
-    fn draw(&self, piet_context: &mut C) {
-        if let Some(txt) = &self.text_layout {
-            piet_context.draw_text(txt, (100., 100.));
-        }
-    }
-
-    fn update(&mut self, piet_context: &mut C) {
+impl Component for Button {
+    fn draw(&self, piet_context: &mut impl RenderContext) {
         let txt = piet_context
             .text()
             .new_text_layout(self.text.clone())
@@ -55,7 +42,9 @@ impl<C: RenderContext> Component for Button<C> {
             .build()
             .ok();
         if let Some(txt) = txt {
-            self.text_layout = Some(txt);
+            piet_context.draw_text(&txt, (100., 100.));
         }
     }
+
+    fn update(&mut self, piet_context: &mut impl RenderContext) {}
 }

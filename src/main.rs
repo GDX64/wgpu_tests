@@ -26,21 +26,17 @@ fn draw_app() -> Result<(), Box<dyn Error>> {
 
     // Limit to max ~60 fps update rate
     window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
-    window.limit_update_rate(Some(Duration::from_millis(32)));
-    let device = Box::new(Device::new()?);
-    let device = Box::leak(device);
-    let mut target = device.bitmap_target(WIDTH, HEIGHT, 1.)?;
+    let mut device = Box::new(Device::new()?);
+    let mut app = create_new_app();
     while window.is_open() {
+        let mut target = device.bitmap_target(WIDTH, HEIGHT, 1.)?;
         {
-            let mut app = create_new_app::<D2DRenderContext>();
             let mut piet_context = target.render_context();
             app.draw(&mut piet_context);
-        }
-
+        };
         let drawing = buff_to_vec(target.to_image_buf(piet::ImageFormat::RgbaPremul)?);
         window.update_with_buffer(&drawing, WIDTH, HEIGHT).unwrap();
     }
-
     Ok(())
 }
 
