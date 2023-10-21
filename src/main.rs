@@ -59,10 +59,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Limit to max ~60 fps update rate
     window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
-    let mut gc = GraphicsContext::new()?;
-    let drawing = gc.with_context(|r| run_sample(r))?;
-    window.limit_update_rate(Some(Duration::from_millis(16)));
+    window.limit_update_rate(Some(Duration::from_millis(32)));
     while window.is_open() {
+        let mut gc = GraphicsContext::new()?;
+        let drawing = gc.with_context(|r| run_sample(r))?;
         // We unwrap here as we want this code to exit if it fails. Real applications may want to handle this in a different way
         window.update_with_buffer(&drawing, WIDTH, HEIGHT).unwrap();
         println!("drawing");
