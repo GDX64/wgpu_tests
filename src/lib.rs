@@ -6,6 +6,7 @@ pub struct App {
 
 enum WidgetKind {
     Text(TextWidget),
+    Container(ContainerWidget),
 }
 
 struct WidgetTree {
@@ -24,8 +25,12 @@ impl WidgetTree {
                 text.patch_props(props);
                 WidgetKind::Text(text)
             }
-            NodeKind::Rect => todo!(),
-            NodeKind::Component(comp) => todo!(),
+            NodeKind::Container => WidgetKind::Container(ContainerWidget {}),
+            NodeKind::Component(comp) => {
+                let vnode = comp.run();
+                let widget = WidgetTree::from_vnode(&vnode);
+                return widget;
+            }
         };
         let children = node
             .children
@@ -50,6 +55,9 @@ impl App {
             WidgetKind::Text(widget) => {
                 widget.draw(piet_context);
             }
+            WidgetKind::Container(widget) => {
+                widget.draw(piet_context);
+            }
         }
         for child in &widget.children {
             self.draw_widget_tree(piet_context, child);
@@ -59,12 +67,9 @@ impl App {
 
 pub fn create_new_app() -> App {
     App {
-        comp: Box::new(TextComp::new("Hi there, people".to_string())),
+        comp: Box::new(TestComp::new("Hi there, people".to_string())),
         root: WidgetTree {
-            root: WidgetKind::Text(TextWidget {
-                text: "".to_string(),
-                position: (0.0, 0.0),
-            }),
+            root: WidgetKind::Container(ContainerWidget {}),
             children: vec![],
         },
     }
@@ -76,7 +81,7 @@ struct TextProps {
 }
 enum NodeKind {
     Text(TextProps),
-    Rect,
+    Container,
     Component(Box<dyn Component>),
 }
 
@@ -118,30 +123,33 @@ impl TextWidget {
     }
 }
 
+struct ContainerWidget {}
+
+impl Widget for ContainerWidget {
+    fn draw(&self, _piet_context: &mut impl RenderContext) {}
+}
+
 pub trait Component {
-    fn run(&mut self) -> VNode;
+    fn run(&self) -> VNode;
     fn is_dirty(&self) -> bool {
         true
     }
 }
 
-struct TextComp {
+struct TestComp {
     text: String,
 }
 
-impl TextComp {
+impl TestComp {
     fn new(text: String) -> Self {
         Self { text }
     }
 }
 
-impl Component for TextComp {
-    fn run(&mut self) -> VNode {
+impl Component for TestComp {
+    fn run(&self) -> VNode {
         VNode {
-            tag: NodeKind::Text(TextProps {
-                position: Some((50., 50.)),
-                text: Some(self.text.clone()),
-            }),
+            tag: NodeKind::Container,
             children: vec![
                 VNode {
                     tag: NodeKind::Text(TextProps {
@@ -157,7 +165,34 @@ impl Component for TextComp {
                     }),
                     children: vec![],
                 },
+                VNode {
+                    tag: NodeKind::Component(Box::new(TestComp2::new())),
+                    children: vec![],
+                },
             ],
+        }
+    }
+}
+
+struct TestComp2 {}
+
+impl TestComp2 {
+    fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Component for TestComp2 {
+    fn run(&self) -> VNode {
+        VNode {
+            tag: NodeKind::Container,
+            children: vec![VNode {
+                tag: NodeKind::Text(TextProps {
+                    position: Some((100., 200.)),
+                    text: Some("This is Comp 2".to_string()),
+                }),
+                children: vec![],
+            }],
         }
     }
 }
