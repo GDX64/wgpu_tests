@@ -1,6 +1,6 @@
 use piet::{Color, FontFamily, RenderContext, Text, TextLayoutBuilder};
 pub struct App {
-    comp: Box<dyn Component>,
+    comp: Box<dyn Fn() -> VNode>,
     root: WidgetTree,
 }
 
@@ -27,7 +27,7 @@ impl WidgetTree {
             }
             NodeKind::Container => WidgetKind::Container(ContainerWidget {}),
             NodeKind::Component(comp) => {
-                let vnode = comp.run();
+                let vnode = (comp)();
                 let widget = WidgetTree::from_vnode(&vnode);
                 return widget;
             }
@@ -43,7 +43,7 @@ impl WidgetTree {
 
 impl App {
     pub fn draw(&mut self, piet_context: &mut impl RenderContext) {
-        let vnode = self.comp.run();
+        let vnode = (self.comp)();
         let widget = WidgetTree::from_vnode(&vnode);
         self.root.children = vec![widget];
         self.draw_widget_tree(piet_context, &self.root);
@@ -67,7 +67,7 @@ impl App {
 
 pub fn create_new_app() -> App {
     App {
-        comp: Box::new(TestComp::new("Hi there, people".to_string())),
+        comp: Box::new(|| TestComp::new("Hi there, people".to_string()).run()),
         root: WidgetTree {
             root: WidgetKind::Container(ContainerWidget {}),
             children: vec![],
@@ -82,7 +82,7 @@ struct TextProps {
 enum NodeKind {
     Text(TextProps),
     Container,
-    Component(Box<dyn Component>),
+    Component(Box<dyn Fn() -> VNode>),
 }
 
 pub struct VNode {
@@ -130,10 +130,8 @@ impl Widget for ContainerWidget {
 }
 
 pub trait Component {
+    type Props;
     fn run(&self) -> VNode;
-    fn is_dirty(&self) -> bool {
-        true
-    }
 }
 
 struct TestComp {
@@ -147,6 +145,7 @@ impl TestComp {
 }
 
 impl Component for TestComp {
+    type Props = ();
     fn run(&self) -> VNode {
         VNode {
             tag: NodeKind::Container,
@@ -166,7 +165,7 @@ impl Component for TestComp {
                     children: vec![],
                 },
                 VNode {
-                    tag: NodeKind::Component(Box::new(TestComp2::new())),
+                    tag: NodeKind::Component(Box::new(|| TestComp2::new().run())),
                     children: vec![],
                 },
             ],
@@ -183,6 +182,7 @@ impl TestComp2 {
 }
 
 impl Component for TestComp2 {
+    type Props = ();
     fn run(&self) -> VNode {
         VNode {
             tag: NodeKind::Container,
