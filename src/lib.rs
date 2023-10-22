@@ -1,6 +1,7 @@
 use piet::{Color, FontFamily, RenderContext, Text, TextLayoutBuilder};
 pub struct App {
     comp: Box<dyn Component>,
+    root: WidgetTree,
 }
 
 enum WidgetKind {
@@ -39,7 +40,8 @@ impl App {
     pub fn draw(&mut self, piet_context: &mut impl RenderContext) {
         let vnode = self.comp.run();
         let widget = WidgetTree::from_vnode(&vnode);
-        self.draw_widget_tree(piet_context, &widget);
+        self.root.children = vec![widget];
+        self.draw_widget_tree(piet_context, &self.root);
         piet_context.finish().unwrap();
     }
 
@@ -58,6 +60,13 @@ impl App {
 pub fn create_new_app() -> App {
     App {
         comp: Box::new(TextComp::new("Hi there, people".to_string())),
+        root: WidgetTree {
+            root: WidgetKind::Text(TextWidget {
+                text: "".to_string(),
+                position: (0.0, 0.0),
+            }),
+            children: vec![],
+        },
     }
 }
 
