@@ -15,10 +15,13 @@ struct WidgetTree {
 impl WidgetTree {
     fn from_vnode(node: &VNode) -> Self {
         let root = match &node.tag {
-            NodeKind::Text => {
-                WidgetKind::Text(TextWidget {
+            NodeKind::Text(props) => {
+                let mut text = TextWidget {
                     text: "Hello, world!".to_string(),
-                })
+                    position: (0.0, 0.0),
+                };
+                text.patch_props(props);
+                WidgetKind::Text(text)
             }
             NodeKind::Rect => todo!(),
             NodeKind::Component(comp) => todo!(),
@@ -54,12 +57,16 @@ impl App {
 
 pub fn create_new_app() -> App {
     App {
-        comp: Box::new(TextComp::new("Hello, world!".to_string())),
+        comp: Box::new(TextComp::new("Hi there, people".to_string())),
     }
 }
 
+struct TextProps {
+    position: Option<(f64, f64)>,
+    text: Option<String>,
+}
 enum NodeKind {
-    Text,
+    Text(TextProps),
     Rect,
     Component(Box<dyn Component>),
 }
@@ -75,6 +82,7 @@ trait Widget {
 
 struct TextWidget {
     text: String,
+    position: (f64, f64),
 }
 
 impl Widget for TextWidget {
@@ -86,12 +94,26 @@ impl Widget for TextWidget {
             .text_color(Color::WHITE)
             .build()
             .unwrap();
-        piet_context.draw_text(&layout, (0.0, 0.0));
+        piet_context.draw_text(&layout, self.position);
+    }
+}
+
+impl TextWidget {
+    fn patch_props(&mut self, props: &TextProps) {
+        if let Some(position) = props.position {
+            self.position = position;
+        }
+        if let Some(text) = &props.text {
+            self.text = text.clone();
+        }
     }
 }
 
 pub trait Component {
     fn run(&mut self) -> VNode;
+    fn is_dirty(&self) -> bool {
+        true
+    }
 }
 
 struct TextComp {
@@ -107,14 +129,23 @@ impl TextComp {
 impl Component for TextComp {
     fn run(&mut self) -> VNode {
         VNode {
-            tag: NodeKind::Text,
+            tag: NodeKind::Text(TextProps {
+                position: Some((50., 50.)),
+                text: Some(self.text.clone()),
+            }),
             children: vec![
                 VNode {
-                    tag: NodeKind::Text,
+                    tag: NodeKind::Text(TextProps {
+                        position: Some((100., 50.)),
+                        text: Some(self.text.clone()),
+                    }),
                     children: vec![],
                 },
                 VNode {
-                    tag: NodeKind::Text,
+                    tag: NodeKind::Text(TextProps {
+                        position: Some((50., 100.)),
+                        text: Some(self.text.clone()),
+                    }),
                     children: vec![],
                 },
             ],
