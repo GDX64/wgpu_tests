@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use piet::{Color, FontFamily, RenderContext, Text, TextLayoutBuilder};
 
 pub enum WidgetKind {
@@ -15,10 +17,11 @@ impl WidgetTree {
         println!("from_vnode: ");
         let root = match &node.tag {
             NodeKind::Text => {
-                let text = TextWidget {
+                let mut text = TextWidget {
                     text: "Hello, world!".to_string(),
                     position: (0.0, 0.0),
                 };
+                text.patch_attrs(&node.attributes);
                 WidgetKind::Text(text)
             }
             NodeKind::Container => WidgetKind::Container(ContainerWidget {}),
@@ -147,10 +150,39 @@ impl Widget for ContainerWidget {
 pub struct VNode {
     pub tag: NodeKind,
     pub children: Vec<VNode>,
+    pub attributes: HashMap<String, String>,
+}
+
+impl VNode {
+    pub fn new(tag: NodeKind) -> Self {
+        Self {
+            tag,
+            children: vec![],
+            attributes: HashMap::new(),
+        }
+    }
+
+    pub fn new_complete(tag: NodeKind, children: Vec<VNode>) -> Self {
+        Self {
+            tag,
+            children,
+            attributes: HashMap::new(),
+        }
+    }
+
+    pub fn add_child(&mut self, child: VNode) {
+        self.children.push(child);
+    }
+
+    pub fn add_attr(mut self, key: impl Into<String>, value: String) -> Self {
+        self.attributes.insert(key.into(), value);
+        self
+    }
 }
 
 trait Widget {
     fn draw(&self, piet_context: &mut impl RenderContext);
+    fn patch_attrs(&mut self, attrs: &HashMap<String, String>) {}
 }
 
 struct TextWidget {
@@ -169,6 +201,12 @@ impl Widget for TextWidget {
             .unwrap();
         piet_context.draw_text(&layout, self.position);
     }
+
+    fn patch_attrs(&mut self, attrs: &HashMap<String, String>) {
+        if let Some(position) = attrs.get("y") {
+            self.position.1 = position.parse().unwrap_or_default();
+        }
+    }
 }
 
 mod test {
@@ -176,36 +214,22 @@ mod test {
 
     #[test]
     fn test_diff() {
-        let tree1 = VNode {
-            children: vec![
-                VNode {
-                    children: vec![],
-                    tag: NodeKind::Text,
-                },
-                VNode {
-                    children: vec![],
-                    tag: NodeKind::Text,
-                },
+        let tree1 = VNode::new_complete(
+            NodeKind::Container,
+            vec![
+                VNode::new(NodeKind::Container),
+                VNode::new(NodeKind::Text),
+                VNode::new(NodeKind::Text),
             ],
-            tag: NodeKind::Container,
-        };
-        let tree2 = VNode {
-            children: vec![
-                VNode {
-                    children: vec![],
-                    tag: NodeKind::Container,
-                },
-                VNode {
-                    children: vec![],
-                    tag: NodeKind::Text,
-                },
-                VNode {
-                    children: vec![],
-                    tag: NodeKind::Text,
-                },
+        );
+        let tree2 = VNode::new_complete(
+            NodeKind::Container,
+            vec![
+                VNode::new(NodeKind::Container),
+                VNode::new(NodeKind::Text),
+                VNode::new(NodeKind::Container),
             ],
-            tag: NodeKind::Container,
-        };
+        );
         let diff = super::WidgetTree::diff_nodes(Some(&tree1), Some(&tree2));
         assert_eq!(
             diff,

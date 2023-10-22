@@ -54,18 +54,12 @@ impl Component for TestComp {
     type State = (f32, f32);
     fn run(&self, s: &Self::State) -> VNode {
         let comps = (s.0 / 10.0) as usize;
-        println!("comps: {}", comps);
-        VNode {
-            tag: NodeKind::Container,
-            children: (0..comps)
-                .map(|_| {
-                    VNode {
-                        tag: NodeKind::Text,
-                        children: vec![],
-                    }
-                })
+        VNode::new_complete(
+            NodeKind::Container,
+            (0..comps)
+                .map(|i| VNode::new(NodeKind::Text).add_attr("y", (i * 12).to_string()))
                 .collect(),
-        }
+        )
     }
 }
 
@@ -74,18 +68,5 @@ struct TestComp2 {}
 impl TestComp2 {
     fn new() -> Self {
         Self {}
-    }
-}
-
-impl Component for TestComp2 {
-    type State = ();
-    fn run(&self, s: &Self::State) -> VNode {
-        VNode {
-            tag: NodeKind::Container,
-            children: vec![VNode {
-                tag: NodeKind::Text,
-                children: vec![],
-            }],
-        }
     }
 }
