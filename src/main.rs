@@ -4,7 +4,7 @@ const HEIGHT: usize = 360;
 use std::{error::Error, time::Duration};
 
 use gui::{create_new_app, App, Component};
-use minifb::{Window, WindowOptions};
+use minifb::{MouseMode, Window, WindowOptions};
 use piet::ImageBuf;
 use piet_common::Device;
 use piet_direct2d::D2DRenderContext;
@@ -29,6 +29,9 @@ fn draw_app() -> Result<(), Box<dyn Error>> {
     let mut device = Box::new(Device::new()?);
     let mut app = create_new_app();
     while window.is_open() {
+        if let Some(pos) = window.get_mouse_pos(MouseMode::Pass) {
+            app.set_state(pos);
+        }
         let mut target = device.bitmap_target(WIDTH, HEIGHT, 1.)?;
         {
             let mut piet_context = target.render_context();
