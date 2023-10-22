@@ -3,13 +3,18 @@ use elements::{NodeKind, TextProps, VNode, WidgetKind, WidgetTree};
 use piet::{Color, FontFamily, RenderContext, Text, TextLayoutBuilder};
 pub struct App {
     comp: Box<dyn Fn() -> VNode>,
+    old_vnode: Option<VNode>,
+    widget_tree: Option<WidgetTree>,
 }
 
 impl App {
     pub fn draw(&mut self, piet_context: &mut impl RenderContext) {
-        let vnode = (self.comp)();
-        let widget = WidgetTree::from_vnode(&vnode);
-        widget.draw(piet_context);
+        let new_vnode = (self.comp)();
+        let tree =
+            WidgetTree::diff_root(self.widget_tree.take(), self.old_vnode.as_ref(), &new_vnode);
+        self.old_vnode = Some(new_vnode);
+        tree.draw(piet_context);
+        self.widget_tree = Some(tree);
         piet_context.finish().unwrap();
     }
 }
@@ -17,6 +22,8 @@ impl App {
 pub fn create_new_app() -> App {
     App {
         comp: Box::new(|| TestComp::new("Hi there, people".to_string()).run()),
+        old_vnode: None,
+        widget_tree: None,
     }
 }
 
@@ -42,17 +49,11 @@ impl Component for TestComp {
             tag: NodeKind::Container,
             children: vec![
                 VNode {
-                    tag: NodeKind::Text(TextProps {
-                        position: Some((100., 50.)),
-                        text: Some(self.text.clone()),
-                    }),
+                    tag: NodeKind::Text,
                     children: vec![],
                 },
                 VNode {
-                    tag: NodeKind::Text(TextProps {
-                        position: Some((50., 100.)),
-                        text: Some(self.text.clone()),
-                    }),
+                    tag: NodeKind::Text,
                     children: vec![],
                 },
                 TestComp2::new().run(),
@@ -75,10 +76,7 @@ impl Component for TestComp2 {
         VNode {
             tag: NodeKind::Container,
             children: vec![VNode {
-                tag: NodeKind::Text(TextProps {
-                    position: Some((100., 200.)),
-                    text: Some("This is Comp 2".to_string()),
-                }),
+                tag: NodeKind::Text,
                 children: vec![],
             }],
         }
