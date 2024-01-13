@@ -1,13 +1,9 @@
 const WIDTH: usize = 640;
 const HEIGHT: usize = 360;
-
-use std::{error::Error, time::Duration};
-
-use gui::{create_new_app, App, Component};
-use minifb::{MouseMode, Window, WindowOptions};
-use piet::ImageBuf;
+use minifb::{Window, WindowOptions};
+use piet::{kurbo::Rect, Color, ImageBuf};
 use piet_common::Device;
-use piet_direct2d::D2DRenderContext;
+use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
     draw_app()
@@ -27,15 +23,11 @@ fn draw_app() -> Result<(), Box<dyn Error>> {
     // Limit to max ~60 fps update rate
     window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
     let mut device = Box::new(Device::new()?);
-    let mut app = create_new_app();
     while window.is_open() {
-        if let Some(pos) = window.get_mouse_pos(MouseMode::Pass) {
-            app.set_state(pos);
-        }
         let mut target = device.bitmap_target(WIDTH, HEIGHT, 1.)?;
         {
             let mut piet_context = target.render_context();
-            app.draw(&mut piet_context);
+            draw(&mut piet_context);
         };
         let drawing = buff_to_vec(target.to_image_buf(piet::ImageFormat::RgbaPremul)?);
         window.update_with_buffer(&drawing, WIDTH, HEIGHT).unwrap();
@@ -57,4 +49,11 @@ fn buff_to_vec(buff: ImageBuf) -> Vec<u32> {
         })
         .collect::<Vec<u32>>();
     drawing
+}
+
+fn draw(piet_context: &mut impl piet::RenderContext) {
+    let rect = Rect::new(0., 0., 200., 200.);
+    let brush = piet_context.solid_brush(Color::RED);
+    piet_context.fill(rect, &brush);
+    piet_context.finish();
 }
