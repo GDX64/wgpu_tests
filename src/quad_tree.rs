@@ -1,4 +1,4 @@
-use piet::kurbo::{Circle, Point, Rect, Shape};
+use piet::kurbo::{Circle, Rect, Shape};
 
 use crate::particle::V2;
 
@@ -67,7 +67,7 @@ impl<T: TreeValue> QuadTree<T> {
     pub fn for_each(&self, f: &mut impl FnMut(&QuadTree<T>)) {
         match &self.node {
             QuadTreeNode::Empty => {}
-            QuadTreeNode::Leaf { value } => {
+            QuadTreeNode::Leaf { value: _ } => {
                 f(self);
             }
             QuadTreeNode::Node { nw, ne, sw, se } => {

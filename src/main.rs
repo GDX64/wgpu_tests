@@ -1,13 +1,13 @@
 const PIXEL_WIDTH: usize = 600;
 const PIXEL_HEIGHT: usize = 400;
-const PARTICLE_NUMBER: usize = 1000;
+const PARTICLE_NUMBER: usize = 5000;
 const SCALING: f64 = 2.;
 const WIDTH: f64 = PIXEL_WIDTH as f64 / SCALING;
 const HEIGHT: f64 = PIXEL_HEIGHT as f64 / SCALING;
 mod quad_tree;
 
 use minifb::{Window, WindowOptions};
-use particle::{World, V2};
+use particle::{World, PARTICLE_RADIUS, V2};
 use piet::{
     kurbo::{Affine, Circle, Line, Rect},
     Color, ImageBuf, RenderContext, Text, TextLayoutBuilder,
@@ -127,7 +127,7 @@ fn draw_tree(
         let rect = n.get_rect();
         piet_context.stroke(rect, &brush, 1.0);
     });
-    let query_circ = Circle::new((mouse_pos.x, mouse_pos.y), 10.);
+    let query_circ = Circle::new((mouse_pos.x, mouse_pos.y), PARTICLE_RADIUS);
     piet_context.stroke(query_circ, &Color::RED, 1.0);
     tree.query_distance(
         &V2::new(query_circ.center.x, query_circ.center.y),

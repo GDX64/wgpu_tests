@@ -57,7 +57,7 @@ pub struct World {
 }
 
 const PARTICLE_MASS: f64 = 1.;
-const PARTICLE_RADIUS: f64 = 5.;
+pub const PARTICLE_RADIUS: f64 = 5.;
 const KERNEL_INTEGRAL: f64 = 0.36;
 
 // fn kernel_integral() -> f64 {
