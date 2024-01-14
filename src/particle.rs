@@ -54,10 +54,16 @@ pub struct World {
     gravity: V2,
     step: f64,
     tree: quad_tree::QuadTree<Particle>,
+    mouse_pos: Option<V2>,
 }
 
 const PARTICLE_MASS: f64 = 1.;
-pub const PARTICLE_RADIUS: f64 = 5.;
+const PRESSURE_MULTIPLIER: f64 = 10.;
+const TARGET_DENSITY: f64 = 0.;
+const STEP: f64 = 0.00005;
+const FRICTION: f64 = 1.;
+pub const PARTICLE_RADIUS: f64 = 6.;
+const MOUSE_FORCE: f64 = 2000.;
 const KERNEL_INTEGRAL: f64 = 0.36;
 
 // fn kernel_integral() -> f64 {
@@ -82,8 +88,13 @@ impl World {
             tree: quad_tree::QuadTree::new(V2::new(0., 0.), dimensions.x, dimensions.y),
             dimensions,
             gravity,
-            step: 0.01,
+            step: STEP,
+            mouse_pos: None,
         }
+    }
+
+    pub fn update_mouse_pos(&mut self, mouse_pos: Option<V2>) {
+        self.mouse_pos = mouse_pos;
     }
 
     pub fn add_random_particles(&mut self, n: usize, rng: impl Fn() -> f64) {
@@ -107,29 +118,36 @@ impl World {
         influence * PARTICLE_MASS
     }
 
-    pub fn calc_gradient(&self, point: &V2) -> V2 {
+    pub fn calc_gradient_and_density(&self, point: &V2) -> (V2, f64) {
         let mut gradient = V2::new(0., 0.);
+        let mut density = 0.;
         self.tree.query_distance(point, PARTICLE_RADIUS, |other| {
             let d = point.sub(&other.position).len();
-            if d <= 0.01 {
+            if d <= 0.001 {
                 return;
             }
+            density += smoothing_kernel(d);
             let g = smoothing_kernel_gradient(d);
             gradient.x += g * (point.x - other.position.x);
             gradient.y += g * (point.y - other.position.y);
         });
-        gradient.scalar_mul(PARTICLE_MASS)
+        (gradient.scalar_mul(PARTICLE_MASS), density * PARTICLE_MASS)
     }
 
-    pub fn calc_particle_force(&self, particle: &Particle) -> V2 {
-        let density = 1.;
-        let pressure = 10.;
-        let gradient = self.calc_gradient(&particle.position);
-        gradient.scalar_mul(-pressure / density)
-    }
-
-    pub fn add_particle(&mut self, particle: Particle) {
-        self.particles.push(particle);
+    pub fn calc_particle_acc(&self, particle: &Particle) -> V2 {
+        let pressure = PRESSURE_MULTIPLIER;
+        let (gradient, density_calc) = self.calc_gradient_and_density(&particle.position);
+        let density_calc = density_calc.max(0.0001);
+        let density_error = (density_calc - TARGET_DENSITY).abs();
+        let pressure = pressure * (density_error / density_calc);
+        let acc = gradient.scalar_mul(-pressure / density_calc);
+        if let Some(ref mouse_pos) = self.mouse_pos {
+            let mouse_distance = mouse_pos.sub(&particle.position);
+            let l = mouse_distance.len();
+            let mouse_acc = mouse_distance.scalar_mul(-MOUSE_FORCE / l.powi(2));
+            return acc.add(&mouse_acc);
+        }
+        return acc;
     }
 
     fn update_quadtree(&mut self) {
@@ -148,13 +166,13 @@ impl World {
     fn _evolve(&mut self) {
         let dt = self.step;
         self.update_quadtree();
-        let friction = 0.99;
+        let friction = FRICTION;
         self.particles = self
             .particles
             .par_iter()
             .map(|p| {
                 let mut particle = p.clone();
-                let force = self.calc_particle_force(&particle).add(&self.gravity);
+                let force = self.calc_particle_acc(&particle).add(&self.gravity);
                 particle.velocity = particle.velocity.add(&force.scalar_mul(dt));
                 particle.velocity = particle.velocity.scalar_mul(friction);
                 particle.position = particle.position.add(&particle.velocity.scalar_mul(dt));

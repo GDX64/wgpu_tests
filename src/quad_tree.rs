@@ -31,6 +31,7 @@ impl<T> QuadTreeNode<T> {
 
 pub trait TreeValue {
     fn position(&self) -> V2;
+    fn offset_pos(&mut self);
 }
 
 impl<T: TreeValue> QuadTree<T> {
@@ -78,13 +79,17 @@ impl<T: TreeValue> QuadTree<T> {
         }
     }
 
-    pub fn insert(&mut self, value: T) {
+    pub fn insert(&mut self, mut value: T) {
         let node = self.node.take();
         self.node = match node {
             QuadTreeNode::Empty => QuadTreeNode::Leaf { value },
             QuadTreeNode::Leaf { value: this_value } => {
                 let mut other =
                     QuadTree::new_node(self.center.clone(), self.half_width, self.half_height);
+                if value.position().sub(&this_value.position()).len() < 0.0001 {
+                    value.offset_pos();
+                    return;
+                }
                 other.insert(this_value);
                 other.insert(value);
                 *self = other;
@@ -190,6 +195,9 @@ mod tests {
     impl TreeValue for V2 {
         fn position(&self) -> V2 {
             self.clone()
+        }
+        fn offset_pos(&mut self) {
+            *self = self.add(&V2::new(0.0001, 0.0001));
         }
     }
 
