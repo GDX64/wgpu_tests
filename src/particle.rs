@@ -54,7 +54,7 @@ pub struct World {
 }
 
 const PARTICLE_MASS: f64 = 1.;
-const PARTICLE_RADIUS: f64 = 4.;
+const PARTICLE_RADIUS: f64 = 3.;
 const KERNEL_INTEGRAL: f64 = 0.36;
 
 // fn kernel_integral() -> f64 {
@@ -78,7 +78,7 @@ impl World {
             particles: Vec::new(),
             dimensions,
             gravity,
-            step: 0.01,
+            step: 0.02,
         }
     }
 

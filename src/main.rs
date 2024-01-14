@@ -1,7 +1,7 @@
-const PIXEL_WIDTH: usize = 300;
-const PIXEL_HEIGHT: usize = 300;
-const PARTICLE_NUMBER: usize = 100;
-const SCALING: f64 = 5.;
+const PIXEL_WIDTH: usize = 600;
+const PIXEL_HEIGHT: usize = 400;
+const PARTICLE_NUMBER: usize = 1000;
+const SCALING: f64 = 2.;
 const WIDTH: f64 = PIXEL_WIDTH as f64 / SCALING;
 const HEIGHT: f64 = PIXEL_HEIGHT as f64 / SCALING;
 
@@ -9,7 +9,7 @@ use minifb::{Window, WindowOptions};
 use particle::{World, V2};
 use piet::{
     kurbo::{Affine, Circle, Line, Rect},
-    Color, ImageBuf,
+    Color, ImageBuf, RenderContext, Text, TextLayoutBuilder,
 };
 use piet_common::Device;
 use std::error::Error;
@@ -41,7 +41,16 @@ fn draw_app() -> Result<(), Box<dyn Error>> {
         let mut target = device.bitmap_target(PIXEL_WIDTH, PIXEL_HEIGHT, 1.)?;
         {
             let mut piet_context = target.render_context();
+            let evolve_start = std::time::Instant::now();
             world.evolve();
+            let evolve_duration = evolve_start.elapsed();
+            let txt = piet_context
+                .text()
+                .new_text_layout(format!("Evolve: {:?}", evolve_duration))
+                .text_color(Color::WHITE)
+                .build()
+                .unwrap();
+            piet_context.draw_text(&txt, (10., 10.));
             draw(&mut piet_context, &world);
         };
         let drawing = buff_to_vec(target.to_image_buf(piet::ImageFormat::RgbaPremul)?);
