@@ -49,6 +49,12 @@ impl<T: TreeValue> QuadTree<T> {
         }
     }
 
+    pub fn add_vec(&mut self, vec: Vec<T>) {
+        vec.into_iter().for_each(|v| {
+            self.insert(v);
+        });
+    }
+
     pub fn get_rect(&self) -> Rect {
         Rect::new(
             self.center.x - self.half_width,

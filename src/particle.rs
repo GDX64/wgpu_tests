@@ -1,5 +1,7 @@
 use std::f64::consts::PI;
 
+use crate::quad_tree;
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct V2 {
     pub x: f64,
@@ -51,6 +53,7 @@ pub struct World {
     dimensions: V2,
     gravity: V2,
     step: f64,
+    tree: quad_tree::QuadTree<Particle>,
 }
 
 const PARTICLE_MASS: f64 = 1.;
@@ -76,6 +79,7 @@ impl World {
     pub fn new(dimensions: V2, gravity: V2) -> World {
         World {
             particles: Vec::new(),
+            tree: quad_tree::QuadTree::new(V2::new(0., 0.), dimensions.x, dimensions.y),
             dimensions,
             gravity,
             step: 0.02,
@@ -104,7 +108,7 @@ impl World {
 
     pub fn calc_gradient(&self, point: &V2) -> V2 {
         let mut gradient = V2::new(0., 0.);
-        for other in &self.particles {
+        for other in &self.tree.query_distance(point, PARTICLE_RADIUS) {
             let d = point.sub(&other.position).len();
             if d <= 0.01 {
                 continue;
@@ -129,6 +133,13 @@ impl World {
 
     pub fn add_particle(&mut self, particle: Particle) {
         self.particles.push(particle);
+    }
+
+    fn update_quadtree(&mut self) {
+        self.tree = quad_tree::QuadTree::new(V2::new(0., 0.), self.dimensions.x, self.dimensions.y);
+        self.particles.iter().for_each(|particle| {
+            self.tree.insert(particle.clone());
+        });
     }
 
     pub fn evolve(&mut self) {
@@ -165,6 +176,7 @@ impl World {
                 }
                 return particle;
             })
-            .collect()
+            .collect();
+        self.update_quadtree();
     }
 }

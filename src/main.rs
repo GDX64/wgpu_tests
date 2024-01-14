@@ -1,6 +1,6 @@
 const PIXEL_WIDTH: usize = 600;
 const PIXEL_HEIGHT: usize = 400;
-const PARTICLE_NUMBER: usize = 100;
+const PARTICLE_NUMBER: usize = 5000;
 const SCALING: f64 = 2.;
 const WIDTH: f64 = PIXEL_WIDTH as f64 / SCALING;
 const HEIGHT: f64 = PIXEL_HEIGHT as f64 / SCALING;
@@ -44,7 +44,7 @@ fn draw_app() -> Result<(), Box<dyn Error>> {
         {
             let mut piet_context = target.render_context();
             let evolve_start = std::time::Instant::now();
-            // world.evolve();
+            world.evolve();
             let evolve_duration = evolve_start.elapsed();
             let txt = piet_context
                 .text()
@@ -85,8 +85,8 @@ fn draw(piet_context: &mut impl piet::RenderContext, world: &World) {
     world.particles.iter().for_each(|particle| {
         let x = particle.position.x;
         let y = particle.position.y;
-        let rect = Circle::new((x, y), 1.);
-        piet_context.fill(rect, &brush);
+        let particle = Circle::new((x, y), 1.);
+        piet_context.fill(particle, &brush);
     });
     // let center = V2::new(WIDTH as f64 / 2., HEIGHT as f64 / 2.);
     // let gradient = world.calc_gradient(&center);
