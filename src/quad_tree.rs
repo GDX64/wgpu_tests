@@ -147,12 +147,12 @@ impl<T: TreeValue> QuadTree<T> {
         }
     }
 
-    pub fn query_distance<'a>(&'a self, point: &V2, r: f64, mut f: impl FnMut(&T)) {
+    pub fn query_distance(&self, point: &V2, r: f64, mut f: impl FnMut(&T)) {
         let circ = Circle::new((point.x, point.y), r).bounding_box();
         self._query_distance(&circ, &mut f);
     }
 
-    fn _query_distance<'a>(&'a self, r: &Rect, f: &mut impl FnMut(&T)) {
+    fn _query_distance(&self, r: &Rect, f: &mut impl FnMut(&T)) {
         let rect = self.get_rect();
         if !rects_intersect(&rect, r) {
             return;
