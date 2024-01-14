@@ -1,5 +1,5 @@
-const PIXEL_WIDTH: usize = 600;
-const PIXEL_HEIGHT: usize = 400;
+const PIXEL_WIDTH: usize = 800;
+const PIXEL_HEIGHT: usize = 600;
 const PARTICLE_NUMBER: usize = 5000;
 const SCALING: f64 = 2.;
 const WIDTH: f64 = PIXEL_WIDTH as f64 / SCALING;

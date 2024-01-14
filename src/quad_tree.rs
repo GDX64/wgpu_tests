@@ -1,18 +1,13 @@
+use std::borrow::BorrowMut;
+
 use piet::kurbo::{Circle, Rect, Shape};
 
 use crate::particle::V2;
 
 pub enum QuadTreeNode<T> {
     Empty,
-    Leaf {
-        value: T,
-    },
-    Node {
-        nw: Box<QuadTree<T>>,
-        ne: Box<QuadTree<T>>,
-        sw: Box<QuadTree<T>>,
-        se: Box<QuadTree<T>>,
-    },
+    Leaf { value: T },
+    Node(Box<[QuadTree<T>; 4]>),
 }
 
 pub struct QuadTree<T> {
@@ -70,7 +65,11 @@ impl<T: TreeValue> QuadTree<T> {
             QuadTreeNode::Leaf { value: _ } => {
                 f(self);
             }
-            QuadTreeNode::Node { nw, ne, sw, se } => {
+            QuadTreeNode::Node(v) => {
+                let nw = &v[0];
+                let ne = &v[1];
+                let sw = &v[2];
+                let se = &v[3];
                 nw.for_each(f);
                 ne.for_each(f);
                 sw.for_each(f);
@@ -91,20 +90,15 @@ impl<T: TreeValue> QuadTree<T> {
                 *self = other;
                 return;
             }
-            QuadTreeNode::Node {
-                mut nw,
-                mut ne,
-                mut sw,
-                mut se,
-            } => {
+            QuadTreeNode::Node(mut v) => {
                 let quadrant = self.quadrant(&value.position());
                 match quadrant {
-                    Quadrant::NW => nw.insert(value),
-                    Quadrant::NE => ne.insert(value),
-                    Quadrant::SW => sw.insert(value),
-                    Quadrant::SE => se.insert(value),
+                    Quadrant::NW => v[0].insert(value),
+                    Quadrant::NE => v[1].insert(value),
+                    Quadrant::SW => v[2].insert(value),
+                    Quadrant::SE => v[3].insert(value),
                 };
-                QuadTreeNode::Node { nw, ne, sw, se }
+                QuadTreeNode::Node(v)
             }
         }
     }
@@ -131,12 +125,7 @@ impl<T: TreeValue> QuadTree<T> {
             half_height / 2.,
         );
         QuadTree {
-            node: QuadTreeNode::Node {
-                nw: Box::new(nw),
-                ne: Box::new(ne),
-                sw: Box::new(sw),
-                se: Box::new(se),
-            },
+            node: QuadTreeNode::Node(Box::new([nw, ne, sw, se])),
             center,
             half_width,
             half_height,
@@ -178,11 +167,11 @@ impl<T: TreeValue> QuadTree<T> {
             QuadTreeNode::Leaf { value } => {
                 v.push(value);
             }
-            QuadTreeNode::Node { nw, ne, sw, se } => {
-                nw._query_distance(r, v);
-                ne._query_distance(r, v);
-                sw._query_distance(r, v);
-                se._query_distance(r, v);
+            QuadTreeNode::Node(arr) => {
+                arr[0]._query_distance(r, v);
+                arr[1]._query_distance(r, v);
+                arr[2]._query_distance(r, v);
+                arr[3]._query_distance(r, v);
             }
         }
     }
