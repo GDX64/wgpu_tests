@@ -109,15 +109,15 @@ impl World {
 
     pub fn calc_gradient(&self, point: &V2) -> V2 {
         let mut gradient = V2::new(0., 0.);
-        for other in &self.tree.query_distance(point, PARTICLE_RADIUS) {
+        self.tree.query_distance(point, PARTICLE_RADIUS, |other| {
             let d = point.sub(&other.position).len();
             if d <= 0.01 {
-                continue;
+                return;
             }
             let g = smoothing_kernel_gradient(d);
             gradient.x += g * (point.x - other.position.x);
             gradient.y += g * (point.y - other.position.y);
-        }
+        });
         gradient.scalar_mul(PARTICLE_MASS)
     }
 

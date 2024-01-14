@@ -132,12 +132,11 @@ fn draw_tree(
     tree.query_distance(
         &V2::new(query_circ.center.x, query_circ.center.y),
         query_circ.radius,
-    )
-    .iter()
-    .for_each(|p| {
-        let rect = Circle::new((p.position.x, p.position.y), 1.);
-        piet_context.fill(rect, &Color::RED);
-    });
+        |p| {
+            let rect = Circle::new((p.position.x, p.position.y), 1.);
+            piet_context.fill(rect, &Color::RED);
+        },
+    );
     Some(())
 }
 
