@@ -146,7 +146,7 @@ impl World {
     pub fn evolve(&mut self) {
         let dt = self.step;
         self.update_quadtree();
-        let friction = 0.99;
+        let friction = 0.999;
         self.particles = self
             .particles
             .iter()
