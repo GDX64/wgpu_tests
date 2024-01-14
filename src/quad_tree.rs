@@ -13,6 +13,7 @@ pub struct QuadTree<T> {
     center: V2,
     half_width: f64,
     half_height: f64,
+    rect: Rect,
 }
 
 pub enum Quadrant {
@@ -35,6 +36,12 @@ pub trait TreeValue {
 impl<T: TreeValue> QuadTree<T> {
     pub fn new(center: V2, half_width: f64, half_height: f64) -> QuadTree<T> {
         QuadTree {
+            rect: Rect::new(
+                center.x - half_width,
+                center.y - half_height,
+                center.x + half_width,
+                center.y + half_height,
+            ),
             node: QuadTreeNode::Empty,
             center,
             half_width,
@@ -49,12 +56,7 @@ impl<T: TreeValue> QuadTree<T> {
     }
 
     pub fn get_rect(&self) -> Rect {
-        Rect::new(
-            self.center.x - self.half_width,
-            self.center.y - self.half_height,
-            self.center.x + self.half_width,
-            self.center.y + self.half_height,
-        )
+        self.rect
     }
 
     pub fn for_each(&self, f: &mut impl FnMut(&QuadTree<T>)) {
@@ -124,6 +126,12 @@ impl<T: TreeValue> QuadTree<T> {
         );
         QuadTree {
             node: QuadTreeNode::Node(Box::new([nw, ne, sw, se])),
+            rect: Rect::new(
+                center.x - half_width,
+                center.y - half_height,
+                center.x + half_width,
+                center.y + half_height,
+            ),
             center,
             half_width,
             half_height,

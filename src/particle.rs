@@ -1,4 +1,4 @@
-use std::f64::consts::PI;
+use rayon::prelude::*;
 
 use crate::quad_tree;
 
@@ -122,13 +122,9 @@ impl World {
     }
 
     pub fn calc_particle_force(&self, particle: &Particle) -> V2 {
-        // let density = self.calc_density(particle);
         let density = 1.;
         let pressure = 10.;
         let gradient = self.calc_gradient(&particle.position);
-        // if gradient.len() > 0. {
-        //     println!("gradient: {:?}", gradient);
-        // }
         gradient.scalar_mul(-pressure / density)
     }
 
@@ -143,13 +139,19 @@ impl World {
         });
     }
 
-    pub fn evolve(&mut self) {
+    pub fn evolve(&mut self, n: usize) {
+        for _ in 0..n {
+            self._evolve();
+        }
+    }
+
+    fn _evolve(&mut self) {
         let dt = self.step;
         self.update_quadtree();
-        let friction = 0.999;
+        let friction = 0.99;
         self.particles = self
             .particles
-            .iter()
+            .par_iter()
             .map(|p| {
                 let mut particle = p.clone();
                 let force = self.calc_particle_force(&particle).add(&self.gravity);
