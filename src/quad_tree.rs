@@ -1,5 +1,3 @@
-use std::borrow::BorrowMut;
-
 use piet::kurbo::{Circle, Rect, Shape};
 
 use crate::particle::V2;
