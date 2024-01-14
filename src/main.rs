@@ -1,6 +1,6 @@
 const PIXEL_WIDTH: usize = 600;
 const PIXEL_HEIGHT: usize = 400;
-const PARTICLE_NUMBER: usize = 5000;
+const PARTICLE_NUMBER: usize = 1000;
 const SCALING: f64 = 2.;
 const WIDTH: f64 = PIXEL_WIDTH as f64 / SCALING;
 const HEIGHT: f64 = PIXEL_HEIGHT as f64 / SCALING;
@@ -40,11 +40,20 @@ fn draw_app() -> Result<(), Box<dyn Error>> {
 
     let mut device = Box::new(Device::new()?);
     while window.is_open() {
+        let mouse_pos = window
+            .get_mouse_pos(minifb::MouseMode::Discard)
+            .map(|(x, y)| {
+                let x = x as f64 / SCALING;
+                let y = y as f64 / SCALING;
+                V2::new(x, y)
+            });
         let mut target = device.bitmap_target(PIXEL_WIDTH, PIXEL_HEIGHT, 1.)?;
         {
             let mut piet_context = target.render_context();
             let evolve_start = std::time::Instant::now();
-            world.evolve();
+            if let None = mouse_pos {
+                world.evolve();
+            }
             let evolve_duration = evolve_start.elapsed();
             let txt = piet_context
                 .text()
@@ -53,7 +62,7 @@ fn draw_app() -> Result<(), Box<dyn Error>> {
                 .build()
                 .unwrap();
             piet_context.draw_text(&txt, (10., 10.));
-            draw(&mut piet_context, &world);
+            draw(&mut piet_context, &world, mouse_pos);
         };
         let drawing = buff_to_vec(target.to_image_buf(piet::ImageFormat::RgbaPremul)?);
         window
@@ -79,7 +88,7 @@ fn buff_to_vec(buff: ImageBuf) -> Vec<u32> {
     drawing
 }
 
-fn draw(piet_context: &mut impl piet::RenderContext, world: &World) {
+fn draw(piet_context: &mut impl piet::RenderContext, world: &World, mouse_pos: Option<V2>) {
     let brush = piet_context.solid_brush(Color::WHITE);
     piet_context.transform(Affine::scale(SCALING));
     world.particles.iter().for_each(|particle| {
@@ -91,7 +100,7 @@ fn draw(piet_context: &mut impl piet::RenderContext, world: &World) {
     // let center = V2::new(WIDTH as f64 / 2., HEIGHT as f64 / 2.);
     // let gradient = world.calc_gradient(&center);
     // draw_arrow(&center, &center.add(&gradient), piet_context);
-    // draw_tree(piet_context, &world);
+    draw_tree(piet_context, &world, mouse_pos);
     piet_context.finish().unwrap();
 }
 
@@ -103,7 +112,12 @@ fn draw_arrow(p1: &V2, p2: &V2, piet_context: &mut impl piet::RenderContext) {
     piet_context.fill(rect, &brush);
 }
 
-fn draw_tree(piet_context: &mut impl piet::RenderContext, world: &World) {
+fn draw_tree(
+    piet_context: &mut impl piet::RenderContext,
+    world: &World,
+    mouse_pos: Option<V2>,
+) -> Option<()> {
+    let mouse_pos = mouse_pos?;
     let brush = piet_context.solid_brush(Color::WHITE);
     let mut tree = quad_tree::QuadTree::new(V2::new(0., 0.), WIDTH, HEIGHT);
     world.particles.iter().for_each(|particle| {
@@ -113,7 +127,7 @@ fn draw_tree(piet_context: &mut impl piet::RenderContext, world: &World) {
         let rect = n.get_rect();
         piet_context.stroke(rect, &brush, 1.0);
     });
-    let query_circ = Circle::new((WIDTH / 2., HEIGHT / 2.), 50.);
+    let query_circ = Circle::new((mouse_pos.x, mouse_pos.y), 10.);
     piet_context.stroke(query_circ, &Color::RED, 1.0);
     tree.query_distance(
         &V2::new(query_circ.center.x, query_circ.center.y),
@@ -123,7 +137,8 @@ fn draw_tree(piet_context: &mut impl piet::RenderContext, world: &World) {
     .for_each(|p| {
         let rect = Circle::new((p.position.x, p.position.y), 1.);
         piet_context.fill(rect, &Color::RED);
-    })
+    });
+    Some(())
 }
 
 impl quad_tree::TreeValue for particle::Particle {

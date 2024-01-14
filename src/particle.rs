@@ -57,7 +57,7 @@ pub struct World {
 }
 
 const PARTICLE_MASS: f64 = 1.;
-const PARTICLE_RADIUS: f64 = 3.;
+const PARTICLE_RADIUS: f64 = 5.;
 const KERNEL_INTEGRAL: f64 = 0.36;
 
 // fn kernel_integral() -> f64 {
@@ -82,7 +82,7 @@ impl World {
             tree: quad_tree::QuadTree::new(V2::new(0., 0.), dimensions.x, dimensions.y),
             dimensions,
             gravity,
-            step: 0.02,
+            step: 0.01,
         }
     }
 
@@ -95,6 +95,7 @@ impl World {
             let particle = Particle::new(V2::new(x, y), V2::new(vx, vy));
             self.particles.push(particle);
         }
+        self.update_quadtree();
     }
 
     fn calc_density(&self, particle: &Particle) -> f64 {
@@ -144,6 +145,7 @@ impl World {
 
     pub fn evolve(&mut self) {
         let dt = self.step;
+        self.update_quadtree();
         let friction = 0.99;
         self.particles = self
             .particles
@@ -177,6 +179,5 @@ impl World {
                 return particle;
             })
             .collect();
-        self.update_quadtree();
     }
 }

@@ -1,4 +1,4 @@
-use piet::kurbo::Rect;
+use piet::kurbo::{Circle, Point, Rect, Shape};
 
 use crate::particle::V2;
 
@@ -161,52 +161,35 @@ impl<T: TreeValue> QuadTree<T> {
     }
 
     pub fn query_distance<'a>(&'a self, point: &V2, r: f64) -> Vec<&'a T> {
-        if !rect_intersect_circle(
-            &Rect::new(
-                self.center.x - self.half_width,
-                self.center.y - self.half_height,
-                self.center.x + self.half_width,
-                self.center.y + self.half_height,
-            ),
-            point,
-            r,
-        ) {
-            return Vec::new();
-        }
         let mut result = Vec::new();
+        let circ = Circle::new((point.x, point.y), r).bounding_box();
+        self._query_distance(&circ, &mut result);
+        result
+    }
+
+    fn _query_distance<'a>(&'a self, r: &Rect, v: &mut Vec<&'a T>) {
+        let rect = self.get_rect();
+        if !rects_intersect(&rect, r) {
+            return;
+        }
+        // rect.bounding_box()
         match &self.node {
             QuadTreeNode::Empty => {}
             QuadTreeNode::Leaf { value } => {
-                result.push(value);
+                v.push(value);
             }
             QuadTreeNode::Node { nw, ne, sw, se } => {
-                result.extend(nw.query_distance(point, r));
-                result.extend(ne.query_distance(point, r));
-                result.extend(sw.query_distance(point, r));
-                result.extend(se.query_distance(point, r));
+                nw._query_distance(r, v);
+                ne._query_distance(r, v);
+                sw._query_distance(r, v);
+                se._query_distance(r, v);
             }
         }
-        result
     }
 }
 
-fn rect_intersect_circle(rect: &Rect, center: &V2, r: f64) -> bool {
-    let mut closest_x = center.x;
-    let mut closest_y = center.y;
-    if center.x < rect.x0 {
-        closest_x = rect.x0;
-    } else if center.x > rect.x1 {
-        closest_x = rect.x1;
-    }
-    if center.y < rect.y0 {
-        closest_y = rect.y0;
-    } else if center.y > rect.y1 {
-        closest_y = rect.y1;
-    }
-    let dist_x = center.x - closest_x;
-    let dist_y = center.y - closest_y;
-    let distance = (dist_x * dist_x + dist_y * dist_y).sqrt();
-    distance < r
+fn rects_intersect(a: &Rect, b: &Rect) -> bool {
+    a.x0 < b.x1 && a.x1 > b.x0 && a.y0 < b.y1 && a.y1 > b.y0
 }
 
 #[cfg(test)]
