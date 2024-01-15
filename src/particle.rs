@@ -58,7 +58,9 @@ pub struct World {
     gravity: V2,
     step: f64,
     tree: quad_tree::QuadTree<Particle>,
-    mouse_pos: Option<V2>,
+    pub mouse_pos: Option<V2>,
+    pub show_quad_tree: bool,
+    pub is_pressing_mouse: bool,
 }
 
 const PARTICLE_MASS: f64 = 1.;
@@ -82,6 +84,8 @@ impl World {
             gravity,
             step: STEP,
             mouse_pos: None,
+            show_quad_tree: false,
+            is_pressing_mouse: false,
         }
     }
 
@@ -122,10 +126,12 @@ impl World {
         let (gradient, n) = self.calc_force(&particle.position);
         let acc = gradient.scalar_mul(-pressure);
         if let Some(ref mouse_pos) = self.mouse_pos {
-            let mouse_distance = mouse_pos.sub(&particle.position);
-            let l = mouse_distance.len();
-            let mouse_acc = mouse_distance.scalar_mul(-MOUSE_FORCE / l.powi(2));
-            return (acc.add(&mouse_acc), n);
+            if self.is_pressing_mouse {
+                let mouse_distance = mouse_pos.sub(&particle.position);
+                let l = mouse_distance.len();
+                let mouse_acc = mouse_distance.scalar_mul(-MOUSE_FORCE / l.powi(2));
+                return (acc.add(&mouse_acc), n);
+            }
         }
         return (acc, n);
     }

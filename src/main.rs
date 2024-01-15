@@ -1,7 +1,7 @@
 const PIXEL_WIDTH: usize = 800;
 const PIXEL_HEIGHT: usize = 600;
 const PARTICLE_NUMBER: usize = 1200;
-const SCALING: f64 = 3.;
+const SCALING: f64 = 2.;
 const WIDTH: f64 = PIXEL_WIDTH as f64 / SCALING;
 const HEIGHT: f64 = PIXEL_HEIGHT as f64 / SCALING;
 mod quad_tree;
@@ -32,7 +32,7 @@ fn draw_app() -> Result<(), Box<dyn Error>> {
     });
 
     let rng = || rand::random::<f64>();
-    let mut world = World::new(V2::new(WIDTH, HEIGHT), V2::new(0., 30.));
+    let mut world = World::new(V2::new(WIDTH, HEIGHT), V2::new(0., 100.));
     world.add_random_particles(PARTICLE_NUMBER, rng);
 
     // Limit to max ~60 fps update rate
@@ -43,14 +43,16 @@ fn draw_app() -> Result<(), Box<dyn Error>> {
         let mouse_pos = window
             .get_mouse_pos(minifb::MouseMode::Discard)
             .and_then(|(x, y)| {
-                let is_pressing = window.get_mouse_down(minifb::MouseButton::Left);
-                if !is_pressing {
-                    return None;
-                }
                 let x = x as f64 / SCALING;
                 let y = y as f64 / SCALING;
                 Some(V2::new(x, y))
             });
+        let is_pressing = window.get_mouse_down(minifb::MouseButton::Left);
+        world.is_pressing_mouse = is_pressing;
+        let q_pressed = window.is_key_released(minifb::Key::W);
+        if q_pressed {
+            world.show_quad_tree = !world.show_quad_tree;
+        }
         let mut target = device.bitmap_target(PIXEL_WIDTH, PIXEL_HEIGHT, 1.)?;
         {
             let mut piet_context = target.render_context();
@@ -106,7 +108,7 @@ fn draw(piet_context: &mut impl piet::RenderContext, world: &World) {
     // let center = V2::new(WIDTH as f64 / 2., HEIGHT as f64 / 2.);
     // let gradient = world.calc_gradient(&center);
     // draw_arrow(&center, &center.add(&gradient), piet_context);
-    // draw_tree(piet_context, &world);
+    draw_tree(piet_context, &world);
     piet_context.finish().unwrap();
 }
 
@@ -118,8 +120,12 @@ fn draw_arrow(p1: &V2, p2: &V2, piet_context: &mut impl piet::RenderContext) {
     piet_context.fill(rect, &brush);
 }
 
-fn draw_tree(piet_context: &mut impl piet::RenderContext, world: &World) {
-    let brush = piet_context.solid_brush(Color::WHITE);
+fn draw_tree(piet_context: &mut impl piet::RenderContext, world: &World) -> Option<()> {
+    if !world.show_quad_tree {
+        return None;
+    }
+    let mouse_pos = world.mouse_pos.as_ref()?;
+    let brush = Color::from_rgba32_u32(0xffff0055);
     let mut tree = quad_tree::QuadTree::new(V2::new(0., 0.), WIDTH, HEIGHT);
     world.particles.iter().for_each(|particle| {
         tree.insert(particle.clone());
@@ -128,16 +134,17 @@ fn draw_tree(piet_context: &mut impl piet::RenderContext, world: &World) {
         let rect = n.get_rect();
         piet_context.stroke(rect, &brush, 1.0);
     });
-    let query_circ = Circle::new((0., 0.), PARTICLE_RADIUS);
-    piet_context.stroke(query_circ, &Color::RED, 1.0);
+    let query_circ = Circle::new((mouse_pos.x, mouse_pos.y), PARTICLE_RADIUS);
+    piet_context.stroke(query_circ, &Color::RED.with_alpha(0.5), 1.0);
     tree.query_distance(
         &V2::new(query_circ.center.x, query_circ.center.y),
         query_circ.radius,
         |p| {
             let rect = Circle::new((p.position.x, p.position.y), 1.);
-            piet_context.fill(rect, &Color::RED);
+            piet_context.fill(rect, &Color::RED.with_alpha(0.8));
         },
     );
+    Some(())
 }
 
 impl quad_tree::TreeValue for particle::Particle {
