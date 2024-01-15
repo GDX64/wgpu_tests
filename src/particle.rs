@@ -28,6 +28,10 @@ impl V2 {
     pub fn scalar_mul(&self, scalar: f64) -> V2 {
         V2::new(self.x * scalar, self.y * scalar)
     }
+
+    pub fn norm_sqr(&self) -> f64 {
+        self.x * self.x + self.y * self.y
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -58,10 +62,10 @@ pub struct World {
 }
 
 const PARTICLE_MASS: f64 = 1.;
-const PRESSURE_MULTIPLIER: f64 = 50.;
-const STEP: f64 = 0.001;
-const FRICTION: f64 = 0.0001;
-pub const PARTICLE_RADIUS: f64 = 6.;
+const PRESSURE_MULTIPLIER: f64 = 100.;
+const STEP: f64 = 0.006;
+const FRICTION: f64 = 0.00001;
+pub const PARTICLE_RADIUS: f64 = 5.;
 const MOUSE_FORCE: f64 = 2000.;
 
 fn smoothing_kernel_gradient(d: f64) -> f64 {
@@ -149,7 +153,9 @@ impl World {
                 let mut particle = p.clone();
                 let (acc, n) = self.calc_particle_acc(&particle);
                 let force = acc.add(&self.gravity);
-                let friction = (1. - FRICTION * n).max(0.);
+                let friction = (1. - FRICTION * particle.velocity.norm_sqr())
+                    .max(0.)
+                    .min(1.);
                 particle.velocity = particle.velocity.add(&force.scalar_mul(dt));
                 particle.velocity = particle.velocity.scalar_mul(friction);
                 particle.position = particle.position.add(&particle.velocity.scalar_mul(dt));
