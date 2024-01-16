@@ -1,6 +1,6 @@
 const PIXEL_WIDTH: usize = 800;
 const PIXEL_HEIGHT: usize = 600;
-const PARTICLE_NUMBER: usize = 1200;
+const PARTICLE_NUMBER: usize = 2000;
 const SCALING: f64 = 2.;
 const WIDTH: f64 = PIXEL_WIDTH as f64 / SCALING;
 const HEIGHT: f64 = PIXEL_HEIGHT as f64 / SCALING;
@@ -15,9 +15,13 @@ use piet::{
     Color, ImageBuf, RenderContext, Text, TextLayoutBuilder,
 };
 use piet_common::Device;
+// use quad_tree::QuadTree;
 use std::error::Error;
 use v2::V2;
+use zorder_tree::ZOrderTree;
 mod particle;
+
+type WorldType = World<ZOrderTree<Particle>>;
 
 fn main() -> Result<(), Box<dyn Error>> {
     draw_app()
@@ -97,7 +101,7 @@ fn buff_to_vec(buff: ImageBuf) -> Vec<u32> {
     drawing
 }
 
-fn draw(piet_context: &mut impl piet::RenderContext, world: &World<quad_tree::QuadTree<Particle>>) {
+fn draw(piet_context: &mut impl piet::RenderContext, world: &WorldType) {
     let brush = Color::WHITE;
     piet_context.transform(Affine::scale(SCALING));
     world.particles.iter().for_each(|particle| {
@@ -123,10 +127,7 @@ fn draw_arrow(p1: &V2, p2: &V2, piet_context: &mut impl piet::RenderContext) {
     piet_context.fill(rect, &brush);
 }
 
-fn draw_tree(
-    piet_context: &mut impl piet::RenderContext,
-    world: &World<quad_tree::QuadTree<Particle>>,
-) -> Option<()> {
+fn draw_tree(piet_context: &mut impl piet::RenderContext, world: &WorldType) -> Option<()> {
     if !world.show_quad_tree {
         return None;
     }
