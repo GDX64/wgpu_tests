@@ -6,6 +6,7 @@ const WIDTH: f64 = PIXEL_WIDTH as f64 / SCALING;
 const HEIGHT: f64 = PIXEL_HEIGHT as f64 / SCALING;
 mod quad_tree;
 mod v2;
+mod zorder_tree;
 
 use minifb::{Window, WindowOptions};
 use particle::{GeoQuery, Particle, World, PARTICLE_RADIUS};
