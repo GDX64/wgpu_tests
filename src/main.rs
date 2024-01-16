@@ -5,15 +5,17 @@ const SCALING: f64 = 2.;
 const WIDTH: f64 = PIXEL_WIDTH as f64 / SCALING;
 const HEIGHT: f64 = PIXEL_HEIGHT as f64 / SCALING;
 mod quad_tree;
+mod v2;
 
 use minifb::{Window, WindowOptions};
-use particle::{World, PARTICLE_RADIUS, V2};
+use particle::{GeoQuery, Particle, World, PARTICLE_RADIUS};
 use piet::{
     kurbo::{Affine, Circle, Line, Rect},
     Color, ImageBuf, RenderContext, Text, TextLayoutBuilder,
 };
 use piet_common::Device;
 use std::error::Error;
+use v2::V2;
 mod particle;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -94,7 +96,7 @@ fn buff_to_vec(buff: ImageBuf) -> Vec<u32> {
     drawing
 }
 
-fn draw(piet_context: &mut impl piet::RenderContext, world: &World) {
+fn draw(piet_context: &mut impl piet::RenderContext, world: &World<quad_tree::QuadTree<Particle>>) {
     let brush = Color::WHITE;
     piet_context.transform(Affine::scale(SCALING));
     world.particles.iter().for_each(|particle| {
@@ -120,7 +122,10 @@ fn draw_arrow(p1: &V2, p2: &V2, piet_context: &mut impl piet::RenderContext) {
     piet_context.fill(rect, &brush);
 }
 
-fn draw_tree(piet_context: &mut impl piet::RenderContext, world: &World) -> Option<()> {
+fn draw_tree(
+    piet_context: &mut impl piet::RenderContext,
+    world: &World<quad_tree::QuadTree<Particle>>,
+) -> Option<()> {
     if !world.show_quad_tree {
         return None;
     }

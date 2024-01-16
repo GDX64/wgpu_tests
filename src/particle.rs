@@ -1,38 +1,4 @@
-use rayon::prelude::*;
-
-use crate::quad_tree;
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct V2 {
-    pub x: f64,
-    pub y: f64,
-}
-
-impl V2 {
-    pub fn new(x: f64, y: f64) -> V2 {
-        V2 { x, y }
-    }
-
-    pub fn sub(&self, other: &V2) -> V2 {
-        V2::new(self.x - other.x, self.y - other.y)
-    }
-
-    pub fn add(&self, other: &V2) -> V2 {
-        V2::new(self.x + other.x, self.y + other.y)
-    }
-
-    pub fn len(&self) -> f64 {
-        (self.x * self.x + self.y * self.y).sqrt()
-    }
-
-    pub fn scalar_mul(&self, scalar: f64) -> V2 {
-        V2::new(self.x * scalar, self.y * scalar)
-    }
-
-    pub fn norm_sqr(&self) -> f64 {
-        self.x * self.x + self.y * self.y
-    }
-}
+use crate::v2::V2;
 
 #[derive(Clone, Debug)]
 pub struct Particle {
@@ -52,12 +18,12 @@ impl Particle {
     }
 }
 
-pub struct World {
+pub struct World<T> {
     pub particles: Vec<Particle>,
     dimensions: V2,
     gravity: V2,
     step: f64,
-    tree: quad_tree::QuadTree<Particle>,
+    tree: T,
     pub mouse_pos: Option<V2>,
     pub show_quad_tree: bool,
     pub is_pressing_mouse: bool,
@@ -75,11 +41,11 @@ fn smoothing_kernel_gradient(d: f64) -> f64 {
     -v.powi(2)
 }
 
-impl World {
-    pub fn new(dimensions: V2, gravity: V2) -> World {
+impl<T: GeoQuery<Particle>> World<T> {
+    pub fn new(dimensions: V2, gravity: V2) -> World<T> {
         World {
             particles: Vec::new(),
-            tree: quad_tree::QuadTree::new(V2::new(0., 0.), dimensions.x, dimensions.y),
+            tree: T::from_vec(Vec::new(), dimensions.x.max(dimensions.y)),
             dimensions,
             gravity,
             step: STEP,
@@ -102,7 +68,7 @@ impl World {
             let particle = Particle::new(V2::new(x, y), V2::new(vx, vy));
             self.particles.push(particle);
         }
-        self.update_quadtree();
+        self.update_tree();
     }
 
     pub fn calc_force(&self, point: &V2) -> (V2, f64) {
@@ -136,11 +102,11 @@ impl World {
         return (acc, n);
     }
 
-    fn update_quadtree(&mut self) {
-        self.tree = quad_tree::QuadTree::new(V2::new(0., 0.), self.dimensions.x, self.dimensions.y);
-        self.particles.iter().for_each(|particle| {
-            self.tree.insert(particle.clone());
-        });
+    fn update_tree(&mut self) {
+        self.tree = T::from_vec(
+            self.particles.clone(),
+            self.dimensions.x.max(self.dimensions.y),
+        );
     }
 
     pub fn evolve(&mut self, n: usize) {
@@ -151,10 +117,10 @@ impl World {
 
     fn _evolve(&mut self) {
         let dt = self.step;
-        self.update_quadtree();
+        self.update_tree();
         self.particles = self
             .particles
-            .par_iter()
+            .iter()
             .map(|p| {
                 let mut particle = p.clone();
                 let (acc, n) = self.calc_particle_acc(&particle);
@@ -189,4 +155,9 @@ impl World {
             })
             .collect();
     }
+}
+
+pub trait GeoQuery<T> {
+    fn query_distance(&self, point: &V2, radius: f64, f: impl FnMut(&T));
+    fn from_vec(vec: Vec<T>, max_dim: f64) -> Self;
 }

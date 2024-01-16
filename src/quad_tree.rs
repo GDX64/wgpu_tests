@@ -1,6 +1,6 @@
 use piet::kurbo::{Circle, Rect, Shape};
 
-use crate::particle::V2;
+use crate::{particle::GeoQuery, v2::V2};
 
 pub enum QuadTreeNode<T> {
     Empty,
@@ -160,11 +160,6 @@ impl<T: TreeValue> QuadTree<T> {
         }
     }
 
-    pub fn query_distance(&self, point: &V2, r: f64, mut f: impl FnMut(&T)) {
-        let circ = Circle::new((point.x, point.y), r).bounding_box();
-        self._query_distance(&circ, &mut f);
-    }
-
     fn _query_distance(&self, r: &Rect, f: &mut impl FnMut(&T)) {
         let rect = self.get_rect();
         if !rects_intersect(&rect, r) {
@@ -181,6 +176,19 @@ impl<T: TreeValue> QuadTree<T> {
                 arr[3]._query_distance(r, f);
             }
         }
+    }
+}
+
+impl<T: TreeValue> GeoQuery<T> for QuadTree<T> {
+    fn query_distance(&self, point: &V2, r: f64, mut f: impl FnMut(&T)) {
+        let circ = Circle::new((point.x, point.y), r).bounding_box();
+        self._query_distance(&circ, &mut f);
+    }
+
+    fn from_vec(vec: Vec<T>, max_dim: f64) -> Self {
+        let mut tree = QuadTree::new(V2::new(0., 0.), max_dim, max_dim);
+        tree.add_vec(vec);
+        tree
     }
 }
 
