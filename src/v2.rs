@@ -30,6 +30,14 @@ impl V2 {
     pub fn norm_sqr(&self) -> f64 {
         self.x * self.x + self.y * self.y
     }
+
+    pub fn normalized(&self) -> V2 {
+        let len = self.len();
+        if len <= 0.0001 {
+            return V2::new(0., 0.);
+        }
+        V2::new(self.x / len, self.y / len)
+    }
 }
 
 pub trait TreeValue {

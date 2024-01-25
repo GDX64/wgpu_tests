@@ -23,16 +23,15 @@ pub struct World<T> {
     pub is_pressing_mouse: bool,
 }
 
-const PARTICLE_MASS: f64 = 1.;
-const PRESSURE_MULTIPLIER: f64 = 100.;
+const PRESSURE_MULTIPLIER: f64 = 10000.;
 const STEP: f64 = 0.006;
-const FRICTION: f64 = 0.00001;
-pub const PARTICLE_RADIUS: f64 = 5.;
-const MOUSE_FORCE: f64 = -5000.;
+const FRICTION: f64 = 0.5;
+pub const PARTICLE_RADIUS: f64 = 6.;
+const MOUSE_FORCE: f64 = -200.;
 
 fn smoothing_kernel_gradient(d: f64) -> f64 {
-    let v = (PARTICLE_RADIUS - d).max(0.);
-    -v.powi(2)
+    let v = ((PARTICLE_RADIUS - d) / PARTICLE_RADIUS).max(0.);
+    v.powi(2)
 }
 
 impl<T: GeoQuery<Particle>> World<T> {
@@ -65,35 +64,35 @@ impl<T: GeoQuery<Particle>> World<T> {
         self.update_tree();
     }
 
-    pub fn calc_force(&self, point: &V2) -> (V2, f64) {
+    pub fn calc_force(&self, particle: &Particle) -> V2 {
         let mut gradient = V2::new(0., 0.);
-        let mut neightbours = 0.;
+        let point = &particle.position;
         self.tree.query_distance(point, PARTICLE_RADIUS, |other| {
-            let p_vec = point.sub(&other.position);
+            let p_vec = other.position.sub(&particle.position);
+            let p_norm = p_vec.normalized();
             let d = p_vec.len();
-            if d <= 0.001 {
-                return;
-            }
-            let g = smoothing_kernel_gradient(d);
-            gradient = gradient.add(&p_vec.scalar_mul(g));
-            neightbours += 1.;
+            let g = -smoothing_kernel_gradient(d) * PRESSURE_MULTIPLIER;
+            gradient = gradient.add(&&p_norm.scalar_mul(g));
+            let collision_penalty = particle.velocity.sub(&other.velocity).scalar_mul(-FRICTION);
+            gradient = gradient.add(&collision_penalty);
         });
-        (gradient.scalar_mul(PARTICLE_MASS), neightbours)
+        gradient
     }
 
-    pub fn calc_particle_acc(&self, particle: &Particle) -> (V2, f64) {
-        let pressure = PRESSURE_MULTIPLIER;
-        let (gradient, n) = self.calc_force(&particle.position);
-        let acc = gradient.scalar_mul(-pressure);
+    pub fn calc_particle_acc(&self, particle: &Particle) -> V2 {
+        let acc = self.calc_force(&particle);
         if let Some(ref mouse_pos) = self.mouse_pos {
             if self.is_pressing_mouse {
                 let mouse_distance = mouse_pos.sub(&particle.position);
                 let l = mouse_distance.len();
-                let mouse_acc = mouse_distance.scalar_mul(-MOUSE_FORCE / l.powi(2));
-                return (acc.add(&mouse_acc), n);
+                if l > 100. {
+                    return acc;
+                }
+                let mouse_acc = mouse_distance.normalized().scalar_mul(-MOUSE_FORCE);
+                return acc.add(&mouse_acc);
             }
         }
-        return (acc, n);
+        return acc;
     }
 
     fn update_tree(&mut self) {
@@ -117,13 +116,9 @@ impl<T: GeoQuery<Particle>> World<T> {
             .iter()
             .map(|p| {
                 let mut particle = p.clone();
-                let (acc, n) = self.calc_particle_acc(&particle);
-                let force = acc.add(&self.gravity);
-                let friction = (1. - FRICTION * particle.velocity.norm_sqr())
-                    .max(0.)
-                    .min(1.);
-                particle.velocity = particle.velocity.add(&force.scalar_mul(dt));
-                particle.velocity = particle.velocity.scalar_mul(friction);
+                let acc = self.calc_particle_acc(&particle).add(&self.gravity);
+                // let force = acc.add(&self.gravity);
+                particle.velocity = particle.velocity.add(&acc.scalar_mul(dt));
                 particle.position = particle.position.add(&particle.velocity.scalar_mul(dt));
 
                 if particle.position.x < 0. {
