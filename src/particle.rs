@@ -69,13 +69,13 @@ impl<T: GeoQuery<Particle>> World<T> {
         let mut gradient = V2::new(0., 0.);
         let mut neightbours = 0.;
         self.tree.query_distance(point, PARTICLE_RADIUS, |other| {
-            let d = point.sub(&other.position).len();
+            let p_vec = point.sub(&other.position);
+            let d = p_vec.len();
             if d <= 0.001 {
                 return;
             }
             let g = smoothing_kernel_gradient(d);
-            gradient.x += g * (point.x - other.position.x);
-            gradient.y += g * (point.y - other.position.y);
+            gradient = gradient.add(&p_vec.scalar_mul(g));
             neightbours += 1.;
         });
         (gradient.scalar_mul(PARTICLE_MASS), neightbours)
