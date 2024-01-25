@@ -4,12 +4,6 @@ const PARTICLE_NUMBER: usize = 2000;
 const SCALING: f64 = 2.;
 const WIDTH: f64 = PIXEL_WIDTH as f64 / SCALING;
 const HEIGHT: f64 = PIXEL_HEIGHT as f64 / SCALING;
-mod base_types;
-mod quad_tree;
-mod rstar_tree;
-mod tree_drawings;
-mod v2;
-mod zorder_tree;
 
 use minifb::{Window, WindowOptions};
 use particle::{Particle, World};
@@ -20,11 +14,10 @@ use piet::{
 use piet_common::Device;
 // use quad_tree::QuadTree;
 use rstar_tree::RStartree;
-use tree_drawings::TreeDrawable;
+use tree_drawings::{DrawContext, Drawable};
 // use zorder_tree::ZOrderTree;
 use std::error::Error;
 use v2::{TreeValue, V2};
-mod particle;
 
 type WorldType = World<RStartree<Particle>>;
 
@@ -44,7 +37,7 @@ fn draw_app() -> Result<(), Box<dyn Error>> {
     });
 
     let rng = || rand::random::<f64>();
-    let mut world = World::new(V2::new(WIDTH, HEIGHT), V2::new(0., 100.));
+    let mut world: WorldType = World::new(V2::new(WIDTH, HEIGHT), V2::new(0., 100.));
     world.add_random_particles(PARTICLE_NUMBER, rng);
 
     // Limit to max ~60 fps update rate
@@ -68,7 +61,6 @@ fn draw_app() -> Result<(), Box<dyn Error>> {
         let mut target = device.bitmap_target(PIXEL_WIDTH, PIXEL_HEIGHT, 1.)?;
         {
             let mut piet_context = target.render_context();
-            world.update_mouse_pos(mouse_pos);
             let evolve_start = std::time::Instant::now();
             world.evolve(4);
             let evolve_duration = evolve_start.elapsed();
@@ -80,7 +72,10 @@ fn draw_app() -> Result<(), Box<dyn Error>> {
                 .build()
                 .unwrap();
             piet_context.draw_text(&txt, (10., 10.));
-            draw(&mut piet_context, &world);
+            piet_context.transform(Affine::scale(SCALING));
+            let draw_context = DrawContext { mouse_pos };
+            world.draw(&mut piet_context, &draw_context);
+            piet_context.finish();
         };
         let drawing = buff_to_vec(target.to_image_buf(piet::ImageFormat::RgbaPremul)?);
         window
@@ -104,37 +99,4 @@ fn buff_to_vec(buff: ImageBuf) -> Vec<u32> {
         })
         .collect::<Vec<u32>>();
     drawing
-}
-
-fn draw(piet_context: &mut impl piet::RenderContext, world: &WorldType) {
-    let brush = Color::WHITE;
-    piet_context.transform(Affine::scale(SCALING));
-    world.particles.iter().for_each(|particle| {
-        let x = particle.position.x;
-        let y = particle.position.y;
-        let v = particle.velocity.len();
-        let b = brush.with_alpha((v / 50.).min(1.).max(0.3));
-        let particle = Circle::new((x, y), 2.);
-        piet_context.fill(particle, &b);
-    });
-    // let center = V2::new(WIDTH as f64 / 2., HEIGHT as f64 / 2.);
-    // let gradient = world.calc_gradient(&center);
-    // draw_arrow(&center, &center.add(&gradient), piet_context);
-    if let Some(ref mouse_pos) = world.mouse_pos {
-        if world.show_quad_tree {
-            world.tree.draw(piet_context, mouse_pos);
-        }
-    }
-    piet_context.finish().unwrap();
-}
-
-impl TreeValue for particle::Particle {
-    fn position(&self) -> V2 {
-        self.position.clone()
-    }
-
-    fn offset_pos(&mut self) {
-        self.position.x += 0.0001;
-        self.position.y += 0.0001;
-    }
 }

@@ -1,19 +1,35 @@
-use piet::{kurbo::Circle, Color};
+use piet::{
+    kurbo::{Affine, Circle},
+    Color,
+};
 
 use crate::{
-    particle::{GeoQuery, PARTICLE_RADIUS},
+    particle::{GeoQuery, Particle, World, PARTICLE_RADIUS},
     quad_tree::QuadTree,
     rstar_tree::RStartree,
     v2::{TreeValue, V2},
     zorder_tree::ZOrderTree,
 };
 
-pub trait TreeDrawable {
-    fn draw(&self, piet_context: &mut impl piet::RenderContext, mouse_pos: &V2) -> Option<()>;
+pub struct DrawContext {
+    pub mouse_pos: Option<V2>,
 }
 
-impl<T: TreeValue> TreeDrawable for QuadTree<T> {
-    fn draw(&self, piet_context: &mut impl piet::RenderContext, mouse_pos: &V2) -> Option<()> {
+pub trait Drawable {
+    fn draw(
+        &self,
+        piet_context: &mut impl piet::RenderContext,
+        draw_context: &DrawContext,
+    ) -> Option<()>;
+}
+
+impl<T: TreeValue> Drawable for QuadTree<T> {
+    fn draw(
+        &self,
+        piet_context: &mut impl piet::RenderContext,
+        draw_context: &DrawContext,
+    ) -> Option<()> {
+        let mouse_pos = draw_context.mouse_pos.as_ref()?;
         let brush = Color::from_rgba32_u32(0xffff0055);
         self.for_each(&mut |n| {
             let rect = n.get_rect();
@@ -33,8 +49,13 @@ impl<T: TreeValue> TreeDrawable for QuadTree<T> {
     }
 }
 
-impl<T: TreeValue> TreeDrawable for ZOrderTree<T> {
-    fn draw(&self, piet_context: &mut impl piet::RenderContext, mouse_pos: &V2) -> Option<()> {
+impl<T: TreeValue> Drawable for ZOrderTree<T> {
+    fn draw(
+        &self,
+        piet_context: &mut impl piet::RenderContext,
+        draw_context: &DrawContext,
+    ) -> Option<()> {
+        let mouse_pos = draw_context.mouse_pos.as_ref()?;
         let brush = Color::from_rgba32_u32(0xffff0055);
         let mut values = self.values();
         if let Some(first) = values.next() {
@@ -62,8 +83,13 @@ impl<T: TreeValue> TreeDrawable for ZOrderTree<T> {
     }
 }
 
-impl<T: TreeValue> TreeDrawable for RStartree<T> {
-    fn draw(&self, piet_context: &mut impl piet::RenderContext, mouse_pos: &V2) -> Option<()> {
+impl<T: TreeValue> Drawable for RStartree<T> {
+    fn draw(
+        &self,
+        piet_context: &mut impl piet::RenderContext,
+        draw_context: &DrawContext,
+    ) -> Option<()> {
+        let mouse_pos = draw_context.mouse_pos.as_ref()?;
         let brush = Color::from_rgba32_u32(0xffff0055);
         let values = self.boundings();
         values.for_each(|rect| piet_context.stroke(rect, &brush, 1.0));
@@ -78,6 +104,33 @@ impl<T: TreeValue> TreeDrawable for RStartree<T> {
                 piet_context.fill(rect, &Color::RED.with_alpha(0.8));
             },
         );
+        Some(())
+    }
+}
+
+impl<T: GeoQuery<Particle> + Drawable> Drawable for World<T> {
+    fn draw(
+        &self,
+        piet_context: &mut impl piet::RenderContext,
+        draw_context: &DrawContext,
+    ) -> Option<()> {
+        let brush = Color::WHITE;
+        self.particles.iter().for_each(|particle| {
+            let x = particle.position.x;
+            let y = particle.position.y;
+            let v = particle.velocity.len();
+            let b = brush.with_alpha((v / 50.).min(1.).max(0.3));
+            let particle = Circle::new((x, y), 2.);
+            piet_context.fill(particle, &b);
+        });
+        // let center = V2::new(WIDTH as f64 / 2., HEIGHT as f64 / 2.);
+        // let gradient = self.calc_gradient(&center);
+        // draw_arrow(&center, &center.add(&gradient), piet_context);
+        if let Some(ref mouse_pos) = self.mouse_pos {
+            if self.show_quad_tree {
+                self.tree.draw(piet_context, draw_context);
+            }
+        };
         Some(())
     }
 }

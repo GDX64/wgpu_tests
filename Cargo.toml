@@ -6,12 +6,18 @@ version = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.75"
-minifb = "0.25.0"
 piet = "0.6.2"
-#enable all features
 piet-common = {version = "0.6.2", features = ["png"]}
-piet-direct2d = "0.6.2"
-rand = "0.8.5"
-rayon = "1.8.0"
+piet-web = "0.6.2"
 rstar = "0.11.0"
+wasm-bindgen = "0.2.90"
+web-sys = {version = "0.3.67", features = ["HtmlCanvasElement", "CanvasRenderingContext2d", "Window"]}
+
+#do not include those on wasm build
+minifb = {version = "0.25.0", optional = true}
+piet-direct2d = {version = "0.6.2", optional = true}
+rand = {version = "0.8.5", optional = true}
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+piet-common = {version = "0.6.2", features = ["png"]}

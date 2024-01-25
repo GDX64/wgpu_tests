@@ -1,4 +1,4 @@
-use crate::v2::V2;
+use crate::v2::{TreeValue, V2};
 
 #[derive(Clone, Debug)]
 pub struct Particle {
@@ -9,6 +9,17 @@ pub struct Particle {
 impl Particle {
     pub fn new(position: V2, velocity: V2) -> Particle {
         Particle { position, velocity }
+    }
+}
+
+impl TreeValue for Particle {
+    fn position(&self) -> V2 {
+        self.position.clone()
+    }
+
+    fn offset_pos(&mut self) {
+        self.position.x += 0.0001;
+        self.position.y += 0.0001;
     }
 }
 
