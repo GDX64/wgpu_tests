@@ -34,6 +34,10 @@ impl<T: TreeValue> ZOrderTree<T> {
         tree
     }
 
+    pub fn values<'a>(&'a self) -> impl Iterator<Item = &'a T> {
+        self.values.iter().map(|v| &v.value)
+    }
+
     fn query_rect(&self, rect: &Rect) -> &[OrderStore<T>] {
         let start_order = self.order_of(rect.x0, rect.y0);
         let start = self.find_order_index(start_order);

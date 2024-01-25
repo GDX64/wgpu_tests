@@ -10,12 +10,6 @@ impl Particle {
     pub fn new(position: V2, velocity: V2) -> Particle {
         Particle { position, velocity }
     }
-
-    pub fn smoothing_gradient(&self, point: &V2) -> V2 {
-        let d = self.position.sub(point).len();
-        let g = smoothing_kernel_gradient(d);
-        self.position.sub(point).scalar_mul(g)
-    }
 }
 
 pub struct World<T> {
@@ -23,7 +17,7 @@ pub struct World<T> {
     dimensions: V2,
     gravity: V2,
     step: f64,
-    tree: T,
+    pub tree: T,
     pub mouse_pos: Option<V2>,
     pub show_quad_tree: bool,
     pub is_pressing_mouse: bool,
@@ -33,7 +27,7 @@ const PARTICLE_MASS: f64 = 1.;
 const PRESSURE_MULTIPLIER: f64 = 100.;
 const STEP: f64 = 0.006;
 const FRICTION: f64 = 0.00001;
-pub const PARTICLE_RADIUS: f64 = 5.;
+pub const PARTICLE_RADIUS: f64 = 10.;
 const MOUSE_FORCE: f64 = 2000.;
 
 fn smoothing_kernel_gradient(d: f64) -> f64 {

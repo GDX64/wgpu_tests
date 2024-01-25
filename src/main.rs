@@ -1,20 +1,22 @@
 const PIXEL_WIDTH: usize = 800;
 const PIXEL_HEIGHT: usize = 600;
-const PARTICLE_NUMBER: usize = 2000;
+const PARTICLE_NUMBER: usize = 1000;
 const SCALING: f64 = 2.;
 const WIDTH: f64 = PIXEL_WIDTH as f64 / SCALING;
 const HEIGHT: f64 = PIXEL_HEIGHT as f64 / SCALING;
 mod quad_tree;
+mod tree_drawings;
 mod v2;
 mod zorder_tree;
 
 use minifb::{Window, WindowOptions};
-use particle::{GeoQuery, Particle, World, PARTICLE_RADIUS};
+use particle::{Particle, World};
 use piet::{
-    kurbo::{Affine, Circle, Line, Rect},
+    kurbo::{Affine, Circle},
     Color, ImageBuf, RenderContext, Text, TextLayoutBuilder,
 };
 use piet_common::Device;
+use tree_drawings::TreeDrawable;
 // use quad_tree::QuadTree;
 use std::error::Error;
 use v2::V2;
@@ -115,43 +117,12 @@ fn draw(piet_context: &mut impl piet::RenderContext, world: &WorldType) {
     // let center = V2::new(WIDTH as f64 / 2., HEIGHT as f64 / 2.);
     // let gradient = world.calc_gradient(&center);
     // draw_arrow(&center, &center.add(&gradient), piet_context);
-    draw_tree(piet_context, &world);
-    piet_context.finish().unwrap();
-}
-
-fn draw_arrow(p1: &V2, p2: &V2, piet_context: &mut impl piet::RenderContext) {
-    let brush = piet_context.solid_brush(Color::WHITE);
-    let line = Line::new((p1.x, p1.y), (p2.x, p2.y));
-    piet_context.stroke(line, &brush, 1.0);
-    let rect = Rect::new(p2.x - 5., p2.y - 5., p2.x + 5., p2.y + 5.);
-    piet_context.fill(rect, &brush);
-}
-
-fn draw_tree(piet_context: &mut impl piet::RenderContext, world: &WorldType) -> Option<()> {
-    if !world.show_quad_tree {
-        return None;
+    if let Some(ref mouse_pos) = world.mouse_pos {
+        if world.show_quad_tree {
+            world.tree.draw(piet_context, mouse_pos);
+        }
     }
-    let mouse_pos = world.mouse_pos.as_ref()?;
-    let brush = Color::from_rgba32_u32(0xffff0055);
-    let mut tree = quad_tree::QuadTree::new(V2::new(0., 0.), WIDTH, HEIGHT);
-    world.particles.iter().for_each(|particle| {
-        tree.insert(particle.clone());
-    });
-    tree.for_each(&mut |n| {
-        let rect = n.get_rect();
-        piet_context.stroke(rect, &brush, 1.0);
-    });
-    let query_circ = Circle::new((mouse_pos.x, mouse_pos.y), PARTICLE_RADIUS);
-    piet_context.stroke(query_circ, &Color::RED.with_alpha(0.5), 1.0);
-    tree.query_distance(
-        &V2::new(query_circ.center.x, query_circ.center.y),
-        query_circ.radius,
-        |p| {
-            let rect = Circle::new((p.position.x, p.position.y), 1.);
-            piet_context.fill(rect, &Color::RED.with_alpha(0.8));
-        },
-    );
-    Some(())
+    piet_context.finish().unwrap();
 }
 
 impl quad_tree::TreeValue for particle::Particle {
