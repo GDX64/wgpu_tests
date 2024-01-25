@@ -1,10 +1,12 @@
 const PIXEL_WIDTH: usize = 800;
 const PIXEL_HEIGHT: usize = 600;
-const PARTICLE_NUMBER: usize = 1000;
+const PARTICLE_NUMBER: usize = 1500;
 const SCALING: f64 = 2.;
 const WIDTH: f64 = PIXEL_WIDTH as f64 / SCALING;
 const HEIGHT: f64 = PIXEL_HEIGHT as f64 / SCALING;
+mod base_types;
 mod quad_tree;
+mod rstar_tree;
 mod tree_drawings;
 mod v2;
 mod zorder_tree;
@@ -16,14 +18,15 @@ use piet::{
     Color, ImageBuf, RenderContext, Text, TextLayoutBuilder,
 };
 use piet_common::Device;
-use tree_drawings::TreeDrawable;
 // use quad_tree::QuadTree;
+use rstar_tree::RStartree;
+use tree_drawings::TreeDrawable;
+// use zorder_tree::ZOrderTree;
 use std::error::Error;
-use v2::V2;
-use zorder_tree::ZOrderTree;
+use v2::{TreeValue, V2};
 mod particle;
 
-type WorldType = World<ZOrderTree<Particle>>;
+type WorldType = World<RStartree<Particle>>;
 
 fn main() -> Result<(), Box<dyn Error>> {
     draw_app()
@@ -67,7 +70,7 @@ fn draw_app() -> Result<(), Box<dyn Error>> {
             let mut piet_context = target.render_context();
             world.update_mouse_pos(mouse_pos);
             let evolve_start = std::time::Instant::now();
-            world.evolve(5);
+            world.evolve(4);
             let evolve_duration = evolve_start.elapsed();
 
             let txt = piet_context
@@ -125,7 +128,7 @@ fn draw(piet_context: &mut impl piet::RenderContext, world: &WorldType) {
     piet_context.finish().unwrap();
 }
 
-impl quad_tree::TreeValue for particle::Particle {
+impl TreeValue for particle::Particle {
     fn position(&self) -> V2 {
         self.position.clone()
     }

@@ -27,8 +27,8 @@ const PARTICLE_MASS: f64 = 1.;
 const PRESSURE_MULTIPLIER: f64 = 100.;
 const STEP: f64 = 0.006;
 const FRICTION: f64 = 0.00001;
-pub const PARTICLE_RADIUS: f64 = 10.;
-const MOUSE_FORCE: f64 = 2000.;
+pub const PARTICLE_RADIUS: f64 = 5.;
+const MOUSE_FORCE: f64 = -5000.;
 
 fn smoothing_kernel_gradient(d: f64) -> f64 {
     let v = (PARTICLE_RADIUS - d).max(0.);

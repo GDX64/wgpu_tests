@@ -1,6 +1,9 @@
 use piet::kurbo::{Circle, Rect, Shape};
 
-use crate::{particle::GeoQuery, v2::V2};
+use crate::{
+    particle::GeoQuery,
+    v2::{TreeValue, V2},
+};
 
 pub enum QuadTreeNode<T> {
     Empty,
@@ -27,11 +30,6 @@ impl<T> QuadTreeNode<T> {
     fn take(&mut self) -> QuadTreeNode<T> {
         std::mem::replace(self, QuadTreeNode::Empty)
     }
-}
-
-pub trait TreeValue {
-    fn position(&self) -> V2;
-    fn offset_pos(&mut self);
 }
 
 impl<T: TreeValue> QuadTree<T> {

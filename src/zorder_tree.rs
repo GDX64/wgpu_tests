@@ -1,6 +1,6 @@
 use piet::kurbo::{Circle, Rect, Shape};
 
-use crate::{particle::GeoQuery, quad_tree::TreeValue, v2::V2};
+use crate::{particle::GeoQuery, v2::TreeValue, v2::V2};
 
 struct OrderStore<T> {
     value: T,

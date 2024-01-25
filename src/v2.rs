@@ -1,3 +1,5 @@
+use rstar::RTreeObject;
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct V2 {
     pub x: f64,
@@ -28,4 +30,9 @@ impl V2 {
     pub fn norm_sqr(&self) -> f64 {
         self.x * self.x + self.y * self.y
     }
+}
+
+pub trait TreeValue {
+    fn position(&self) -> V2;
+    fn offset_pos(&mut self);
 }
