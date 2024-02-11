@@ -1,6 +1,6 @@
 use std::iter;
 use wgpu::util::DeviceExt;
-use wgpu_things::Texture;
+use wgpu_things::{CameraController, Texture};
 use winit::{
     event::*,
     event_loop::{ControlFlow, EventLoop},
@@ -75,7 +75,7 @@ struct State {
     index_buffer: wgpu::Buffer,
     num_indices: u32,
     diffuse_bind_group: wgpu::BindGroup,
-    camera: wgpu_things::Camera,
+    camera_controller: wgpu_things::CameraController,
     camera_bind_group: wgpu::BindGroup,
 }
 
@@ -147,7 +147,7 @@ impl State {
             source: wgpu::ShaderSource::Wgsl(include_str!("./shaders/test.wgsl").into()),
         });
 
-        let (camera, camera_bind_group, camera_bind_group_layout) = {
+        let (camera_controller, camera_bind_group, camera_bind_group_layout) = {
             let camera = wgpu_things::Camera {
                 // position the camera 1 unit up and 2 units back
                 // +z is out of the screen
@@ -160,7 +160,9 @@ impl State {
                 fovy: 45.0,
                 znear: 0.1,
                 zfar: 100.0,
+                camera_buffer: None,
             };
+            let mut camera_controller = CameraController::new(1.0, camera);
 
             let camera_bind_group_layout =
                 device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -181,11 +183,15 @@ impl State {
                 layout: &camera_bind_group_layout,
                 entries: &[wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: camera.to_gpu_buffer(&device).as_entire_binding(),
+                    resource: camera_controller.camera.create_binding_resource(&device),
                 }],
                 label: Some("camera_bind_group"),
             });
-            (camera, camera_bind_group, camera_bind_group_layout)
+            (
+                camera_controller,
+                camera_bind_group,
+                camera_bind_group_layout,
+            )
         };
 
         let render_pipeline_layout =
@@ -264,7 +270,7 @@ impl State {
             index_buffer,
             num_indices,
             diffuse_bind_group,
-            camera,
+            camera_controller,
             camera_bind_group,
         }
     }
@@ -282,12 +288,14 @@ impl State {
         }
     }
 
-    #[allow(unused_variables)]
     fn input(&mut self, event: &WindowEvent) -> bool {
-        false
+        self.camera_controller.process_events(event)
     }
 
-    fn update(&mut self) {}
+    fn update(&mut self) {
+        self.camera_controller.update_camera();
+        self.camera_controller.update_camera_buffer(&self.queue);
+    }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
