@@ -19,6 +19,7 @@ rand = {version = "0.8.5", optional = true}
 wgpu = "0.18"
 winit = "0.28"
 anyhow = "1.0.79"
+cgmath = "0.18.0"
 
 [dependencies.image]
 default-features = false
