@@ -18,6 +18,7 @@ pollster = "0.3"
 rand = {version = "0.8.5", optional = true}
 wgpu = "0.18"
 winit = "0.28"
+anyhow = "1.0.79"
 
 [dependencies.image]
 default-features = false
