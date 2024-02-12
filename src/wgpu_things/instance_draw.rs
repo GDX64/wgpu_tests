@@ -73,9 +73,9 @@ impl Instance {
             .flat_map(|z| {
                 (0..instances_per_row).map(move |x| {
                     let position = cgmath::Vector3 {
-                        x: x as f32,
+                        x: (3 * x) as f32,
                         y: 0.0,
-                        z: z as f32,
+                        z: (3 * z) as f32,
                     } - displacement;
 
                     let rotation = if position.is_zero() {

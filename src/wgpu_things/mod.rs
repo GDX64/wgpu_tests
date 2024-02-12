@@ -4,3 +4,4 @@ mod texture;
 pub use camera::*;
 pub use instance_draw::*;
 pub use texture::*;
+pub mod model;

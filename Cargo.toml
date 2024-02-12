@@ -13,13 +13,21 @@ piet-common = {version = "0.6.2", features = ["png"]}
 rstar = "0.11.0"
 
 #do not include those on wasm build
+anyhow = "1.0.79"
 bytemuck = {version = "1.12", features = ["derive"]}
+cgmath = "0.18.0"
+glob = "0.3"
 pollster = "0.3"
 rand = {version = "0.8.5", optional = true}
+tobj = {version = "3.2.1", features = [
+  "async",
+]}
 wgpu = "0.18"
 winit = "0.28"
+
+[build-dependencies]
 anyhow = "1.0.79"
-cgmath = "0.18.0"
+fs_extra = "1.2"
 
 [dependencies.image]
 default-features = false
