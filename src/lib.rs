@@ -1,6 +1,7 @@
+use cgmath::prelude::*;
 use std::iter;
 use wgpu::util::DeviceExt;
-use wgpu_things::{CameraController, Texture};
+use wgpu_things::{CameraController, Instance, InstancesVec, Texture};
 use winit::{
     event::*,
     event_loop::{ControlFlow, EventLoop},
@@ -8,6 +9,13 @@ use winit::{
 };
 
 mod wgpu_things;
+
+const NUM_INSTANCES_PER_ROW: u32 = 10;
+const INSTANCE_DISPLACEMENT: cgmath::Vector3<f32> = cgmath::Vector3::new(
+    NUM_INSTANCES_PER_ROW as f32 * 0.5,
+    0.0,
+    NUM_INSTANCES_PER_ROW as f32 * 0.5,
+);
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -73,6 +81,7 @@ struct State {
     diffuse_bind_group: wgpu::BindGroup,
     camera_controller: wgpu_things::CameraController,
     camera_bind_group: wgpu::BindGroup,
+    instances_vec: InstancesVec,
 }
 
 impl State {
@@ -216,7 +225,7 @@ impl State {
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: "vs_main",
-                buffers: &[Vertex::desc()],
+                buffers: &[Vertex::desc(), Instance::desc()],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
@@ -254,6 +263,12 @@ impl State {
             multiview: None,
         });
 
+        let instances_vec = Instance::create_lots(
+            NUM_INSTANCES_PER_ROW as usize,
+            INSTANCE_DISPLACEMENT,
+            &device,
+        );
+
         Self {
             surface,
             device,
@@ -268,6 +283,7 @@ impl State {
             diffuse_bind_group,
             camera_controller,
             camera_bind_group,
+            instances_vec,
         }
     }
 
@@ -330,10 +346,12 @@ impl State {
 
             render_pass.set_bind_group(0, &self.diffuse_bind_group, &[]);
             render_pass.set_bind_group(1, &self.camera_bind_group, &[]);
-            render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+            render_pass.set_vertex_buffer(1, self.instances_vec.buffer.slice(..));
+            render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
 
-            render_pass.draw_indexed(0..self.num_indices, 0, 0..1);
+            let instances_range = 0..self.instances_vec.instances.len() as u32;
+            render_pass.draw_indexed(0..self.num_indices, 0, instances_range);
         }
 
         self.queue.submit(iter::once(encoder.finish()));
