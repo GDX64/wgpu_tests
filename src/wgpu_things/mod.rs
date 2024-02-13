@@ -1,7 +1,9 @@
-mod camera;
-mod instance_draw;
-mod texture;
-pub use camera::*;
-pub use instance_draw::*;
-pub use texture::*;
+pub mod camera;
+pub mod instance_draw;
 pub mod model;
+pub mod renderer;
+pub mod resources;
+pub mod texture;
+pub use instance_draw::*;
+pub use renderer::run;
+pub use texture::*;
