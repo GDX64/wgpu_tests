@@ -5,5 +5,4 @@ pub mod renderer;
 pub mod resources;
 pub mod texture;
 pub use instance_draw::*;
-pub use renderer::run;
 pub use texture::*;
