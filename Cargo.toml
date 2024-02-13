@@ -22,8 +22,8 @@ rand = {version = "0.8.5", optional = true}
 tobj = {version = "3.2.1", features = [
   "async",
 ]}
-wgpu = "0.18"
-winit = "0.28"
+wgpu = "0.19.1"
+winit = "0.29.10"
 
 [build-dependencies]
 anyhow = "1.0.79"

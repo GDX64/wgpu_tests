@@ -1,5 +1,9 @@
 use wgpu::{util::DeviceExt, BindingResource};
-use winit::event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent};
+use winit::{
+    event::{ElementState, WindowEvent},
+    keyboard::Key,
+    platform::modifier_supplement::KeyEventExtModifierSupplement,
+};
 
 #[rustfmt::skip]
 pub const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::new(
@@ -91,32 +95,33 @@ impl CameraController {
 
     pub fn process_events(&mut self, event: &WindowEvent) -> bool {
         let result = match event {
-            WindowEvent::KeyboardInput {
-                input:
-                    KeyboardInput {
-                        state,
-                        virtual_keycode: Some(keycode),
-                        ..
-                    },
-                ..
-            } => {
-                let is_pressed = *state == ElementState::Pressed;
-                match keycode {
-                    VirtualKeyCode::W | VirtualKeyCode::Up => {
-                        self.is_forward_pressed = is_pressed;
-                        true
-                    }
-                    VirtualKeyCode::A | VirtualKeyCode::Left => {
-                        self.is_left_pressed = is_pressed;
-                        true
-                    }
-                    VirtualKeyCode::S | VirtualKeyCode::Down => {
-                        self.is_backward_pressed = is_pressed;
-                        true
-                    }
-                    VirtualKeyCode::D | VirtualKeyCode::Right => {
-                        self.is_right_pressed = is_pressed;
-                        true
+            WindowEvent::KeyboardInput { event, .. } => {
+                let state = event.state;
+                let is_pressed = state == ElementState::Pressed;
+                // event.
+                let key = event.key_without_modifiers();
+                match key {
+                    Key::Character(code) => {
+                        let str = code.as_str();
+                        match str {
+                            "w" | "up" => {
+                                self.is_forward_pressed = is_pressed;
+                                true
+                            }
+                            "a" | "left" => {
+                                self.is_left_pressed = is_pressed;
+                                true
+                            }
+                            "s" | "down" => {
+                                self.is_backward_pressed = is_pressed;
+                                true
+                            }
+                            "d" | "right" => {
+                                self.is_right_pressed = is_pressed;
+                                true
+                            }
+                            _ => false,
+                        }
                     }
                     _ => false,
                 }
